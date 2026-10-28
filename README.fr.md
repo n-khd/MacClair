@@ -8,6 +8,8 @@ MacClair privilégie les analyses locales et les opérations explicites : tout f
 
 <img src="Assets/MacClair-icon.png" width="128" alt="Icône MacClair">
 
+**Site web :** [macclair.vercel.app/fr](https://macclair.vercel.app/fr) · et `brew install --cask n-khd/tap/macclair`
+
 ![Écran principal de MacClair](docs/screenshots/overview-fr.png)
 
 *L’interface réelle, rendue par l’application elle-même — en français et en anglais.*

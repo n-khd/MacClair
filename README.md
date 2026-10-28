@@ -8,6 +8,8 @@ Everything is local and explicit: every file that leaves its place goes to the T
 
 <img src="Assets/MacClair-icon.png" width="128" alt="MacClair icon">
 
+**Website:** [macclair.vercel.app](https://macclair.vercel.app) · and `brew install --cask n-khd/tap/macclair`
+
 ![MacClair overview screen](docs/screenshots/overview-en.png)
 
 *The real interface, rendered from the app itself — English and French.*
