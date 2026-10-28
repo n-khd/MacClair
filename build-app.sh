@@ -12,6 +12,7 @@ SDKROOT="$SDKROOT" \
 CLANG_MODULE_CACHE_PATH="$PWD/.cache/clang" \
 xcrun swiftc -sdk "$SDKROOT" \
     -target "${ARCH}-apple-macosx14.0" -parse-as-library -O \
+    -swift-version 5 \
     -module-cache-path .cache/swift \
     -o .build/MacClair Sources/MacClair/*.swift
 APP="$PWD/dist/MacClair.app"
