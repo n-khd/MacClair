@@ -1,0 +1,48 @@
+name: Compilation et tests (sans signature)
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    name: Compiler l'app, l'aide MCP et lancer les tests
+    runs-on: macos-14
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Sparkle
+        env:
+          SPARKLE_VERSION: "2.10.1"
+        run: |
+          set -euo pipefail
+          mkdir -p vendor
+          curl -fsSL -o "$RUNNER_TEMP/sparkle.tar.xz" \
+            "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+          tar -xf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP" Sparkle.framework
+          ditto "$RUNNER_TEMP/Sparkle.framework" vendor/Sparkle.framework
+          echo "SPARKLE_FRAMEWORK_DIR=$GITHUB_WORKSPACE/vendor" >> "$GITHUB_ENV"
+
+      - name: Compiler l'application (signature ad hoc, sans secret)
+        env:
+          SU_FEED_URL: https://n-khd.github.io/MacClair/appcast.xml
+          SU_PUBLIC_ED_KEY: "G9sIb+Be2ryNBDEhaRWqvFXm8r7O18oJMqVu+IC7kEk="
+        run: |
+          set -euo pipefail
+          export MACCLAIR_VERSION="0.0.0-ci"
+          export MACCLAIR_BUILD="$GITHUB_RUN_NUMBER"
+          zsh ./build-app.sh
+          ls -l dist/MacClair.app/Contents/MacOS/
+          codesign -dv --verbose=2 dist/MacClair.app 2>&1 | head -5
+
+      - name: Compiler et lancer la suite de tests
+        run: |
+          set -euo pipefail
+          chmod +x test.sh
+          zsh ./test.sh
