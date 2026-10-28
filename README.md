@@ -6,7 +6,11 @@ MacClair is a free, open-source macOS utility that maps your disk usage and move
 
 Everything is local and explicit: every file that leaves its place goes to the Trash, where it can be restored, and every action is confirmed. No account, no telemetry, no network call.
 
-![MacClair icon](Assets/MacClair-icon.png)
+<img src="Assets/MacClair-icon.png" width="128" alt="MacClair icon">
+
+![MacClair overview screen](docs/screenshots/overview-en.png)
+
+*The real interface, rendered from the app itself — English and French.*
 
 ## Install
 
