@@ -42,7 +42,9 @@ Chaque mise à jour est authentifiée par une signature EdDSA (clé publique dan
 
 ## Utiliser MacClair avec un agent MCP
 
-Les versions construites avec ce serveur incluent `macclair-mcp` dans l’application. Le client lance ce processus local à la demande : aucune adresse réseau ni clé API n’est nécessaire. Installez d’abord cette version de MacClair dans `/Applications` ; la release actuelle peut ne pas encore inclure cette fonction.
+Les versions construites avec ce serveur incluent `macclair-mcp` dans l’application. Le client lance ce processus local à la demande : aucune adresse réseau ni clé API n’est nécessaire. Installez d’abord MacClair 0.7.0 ou plus récente dans `/Applications` : `macclair-mcp` est inclus dans l’application depuis cette version.
+
+La sécurité est volontairement fermée : `move_to_trash` exige un jeton **et** le chemin exact confirmé par l’utilisateur, puis affiche une alerte native avant tout déplacement. Toute demande hors de `~/Téléchargements`, sur un lien symbolique ou sur un fichier modifié depuis la préparation est refusée.
 
 Pour Codex :
 
