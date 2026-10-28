@@ -13,6 +13,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Construire l'application (signature ad hoc)
+        env:
+          SU_FEED_URL: https://n-khd.github.io/MacClair/appcast.xml
+          SU_PUBLIC_ED_KEY: "G9sIb+Be2ryNBDEhaRWqvFXm8r7O18oJMqVu+IC7kEk="
+        run: |
+          set -euo pipefail
+          export MACCLAIR_VERSION="0.0.0-shots"
+          export MACCLAIR_BUILD="$GITHUB_RUN_NUMBER"
+          zsh ./build-app.sh
+
       - name: Compiler l'outil de capture
         run: |
           set -euo pipefail
@@ -24,10 +34,11 @@ jobs:
             -o .build/macclair-snapshot \
             Sources/MacClair/*.swift Sources/MacClairSnapshot/main.swift
 
-      - name: Rendre les captures
+      - name: Rendre les captures (depuis le bundle, pour les traductions)
         run: |
           set -euo pipefail
-          ./.build/macclair-snapshot dist/screenshots
+          cp .build/macclair-snapshot dist/MacClair.app/Contents/MacOS/macclair-snapshot
+          ./dist/MacClair.app/Contents/MacOS/macclair-snapshot dist/screenshots
           ls -l dist/screenshots
 
       - name: Publier les captures
