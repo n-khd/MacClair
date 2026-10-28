@@ -6,7 +6,11 @@ MacClair est une application macOS libre, en français et en anglais, pour exami
 
 MacClair privilégie les analyses locales et les opérations explicites : tout fichier déplacé part à la Corbeille, où il peut être restauré, et chaque action est confirmée.
 
-![Icône MacClair](Assets/MacClair-icon.png)
+<img src="Assets/MacClair-icon.png" width="128" alt="Icône MacClair">
+
+![Écran principal de MacClair](docs/screenshots/overview-fr.png)
+
+*L’interface réelle, rendue par l’application elle-même — en français et en anglais.*
 
 ## Télécharger
 
