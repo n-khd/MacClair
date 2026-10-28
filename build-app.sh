@@ -32,10 +32,17 @@ xcrun swiftc -sdk "$SDKROOT" \
     "${SWIFT_SPARKLE[@]}" \
     -module-cache-path .cache/swift \
     -o .build/MacClair Sources/MacClair/*.swift
+# The helper is a separate stdio process; it shares the app's scanner implementation.
+SDKROOT="$SDKROOT" CLANG_MODULE_CACHE_PATH="$PWD/.cache/clang" \
+xcrun swiftc -sdk "$SDKROOT" -target "${ARCH}-apple-macosx14.0" -O -swift-version 5 \
+    -module-cache-path .cache/swift -o .build/macclair-mcp \
+    Sources/MacClairMCP/main.swift Sources/MacClair/Scanner.swift \
+    Sources/MacClair/Insights.swift Sources/MacClair/SafeTrash.swift
 APP="$PWD/dist/MacClair.app"
 mkdir -p "$APP/Contents/MacOS"
 mkdir -p "$APP/Contents/Resources"
 cp .build/MacClair "$APP/Contents/MacOS/MacClair"
+cp .build/macclair-mcp "$APP/Contents/MacOS/macclair-mcp"
 cp Assets/hero-storage.png "$APP/Contents/Resources/hero-storage.png"
 cp Assets/MacClair.icns "$APP/Contents/Resources/MacClair.icns"
 if [[ ${#SWIFT_SPARKLE[@]} -gt 0 ]]; then
@@ -69,6 +76,11 @@ ${UPDATE_KEYS}
 </dict></plist>
 PLIST
 SIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
+if [[ "$SIGN_IDENTITY" == "-" ]]; then
+    codesign --force --sign - "$APP/Contents/MacOS/macclair-mcp"
+else
+    codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP/Contents/MacOS/macclair-mcp"
+fi
 if [[ "$SIGN_IDENTITY" == "-" ]]; then
     codesign --force --sign - "$APP" >/dev/null
     echo "Signature ad hoc (aucune identité Developer ID fournie)."

@@ -1,0 +1,16 @@
+name: Tests macOS
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tests
+        run: ./test.sh
+      - name: Compiler l'application
+        run: ./build-app.sh

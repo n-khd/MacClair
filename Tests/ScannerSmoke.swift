@@ -28,6 +28,13 @@ struct ScannerSmoke {
         precondition(Set(report.items.map(\.name)) == ["old.cache", "old.dmg"])
         precondition(report.items.allSatisfy { !$0.selected })
         precondition(report.items.map(\.bytes).reduce(0, +) == 48)
+        let extraCache = cache.appendingPathComponent("old-extra.cache")
+        try Data(repeating: 6, count: 4).write(to: extraCache)
+        try fm.setAttributes([.modificationDate: oldDate], ofItemAtPath: extraCache.path)
+        let bounded = Cleaner(home: home, maximumItemsPerCategory: 1).scan()
+        precondition(bounded.stoppedAtLimit)
+        precondition(bounded.items.filter { $0.category == .caches }.count == 1)
+        precondition(bounded.items.contains { $0.category == .diskImages })
         let oldItem = try report.items.first { $0.name == "old.dmg" }.unwrap()
         try Data(repeating: 5, count: 64).write(to: image)
         try fm.setAttributes([.modificationDate: Date()], ofItemAtPath: image.path)
@@ -48,10 +55,7 @@ struct ScannerSmoke {
             precondition(fm.fileExists(atPath: otherDownload.path))
         }
         let protected = try report.items.first { $0.name == "old.cache" }.unwrap()
-        do {
-            try Cleaner(home: home).moveToTrash(protected)
-            preconditionFailure("Un cache a été déplacé")
-        } catch CleanupError.protectedCategory {}
+        precondition(protected.canMoveToTrash)
         print("ScannerSmoke OK: ancienneté, liens symboliques, sélection et revérification")
     }
 }
