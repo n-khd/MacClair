@@ -305,6 +305,8 @@ jobs:
             echo '  desc "Utilitaire macOS libre pour analyser le stockage et deplacer des fichiers vers la Corbeille"'
             echo '  homepage "https://github.com/Najmabdi7/MacClair"'
             echo ""
+            echo "  auto_updates true"
+            echo ""
             echo "  livecheck do"
             echo "    url :url"
             echo "    strategy :github_latest"
