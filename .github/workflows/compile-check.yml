@@ -50,6 +50,27 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleLocalizations' dist/MacClair.app/Contents/Info.plist
           /usr/libexec/PlistBuddy -c 'Print :CFBundleDevelopmentRegion' dist/MacClair.app/Contents/Info.plist
 
+      - name: Vérifier la résolution des traductions
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/l10n.swift" <<'SWIFT'
+          import Foundation
+          let path = "dist/MacClair.app"
+          guard let app = Bundle(path: path) else { fatalError("bundle introuvable") }
+          print("localisations:", app.localizations.sorted())
+          guard let enPath = app.path(forResource: "en", ofType: "lproj"), let en = Bundle(path: enPath) else {
+              fatalError("en.lproj introuvable dans le bundle")
+          }
+          let cases = ["Déplacer vers la Corbeille", "Gros fichiers", "Prêt à scanner", "Chiffrement du disque"]
+          for key in cases {
+              let value = en.localizedString(forKey: key, value: "MANQUANT", table: nil)
+              print("EN  \(key) -> \(value)")
+              if value == "MANQUANT" { fatalError("clé anglaise absente : \(key)") }
+          }
+          SWIFT
+          xcrun swiftc -O "$RUNNER_TEMP/l10n.swift" -o "$RUNNER_TEMP/l10n"
+          "$RUNNER_TEMP/l10n"
+
       - name: Compiler et lancer la suite de tests
         run: |
           set -euo pipefail
