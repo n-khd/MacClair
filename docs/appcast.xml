@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>MacClair</title>
     <link>https://github.com/Najmabdi7/MacClair</link>
-    <description>Flux de mises a jour genere par le workflow de release.</description>
+    <description>Mises a jour de MacClair</description>
     <language>fr</language>
+    <item>
+      <title>MacClair 0.6.0</title>
+      <pubDate>Wed, 28 Oct 2026 12:11:23 +0000</pubDate>
+      <sparkle:version>10</sparkle:version>
+      <sparkle:shortVersionString>0.6.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[Signee Developer ID et notariee par Apple. Corrections et ameliorations de l utilitaire.]]></description>
+      <enclosure url="https://github.com/Najmabdi7/MacClair/releases/download/v0.6.0/MacClair-0.6.0-macOS-arm64.zip" sparkle:version="10" sparkle:shortVersionString="0.6.0" sparkle:edSignature="ojMhZRMVMk+guvGjHChBXdwBpgV79Nqpvl4rbPUM3Scr5S0fQEhutPKZp/1kXQ953eK9PLoiQOLAxvzE7SMcCA==" sparkle:length="4528739" type="application/octet-stream"/>
+    </item>
   </channel>
 </rss>
