@@ -50,6 +50,13 @@ if [[ ${#SWIFT_SPARKLE[@]} -gt 0 ]]; then
     rm -rf "$APP/Contents/Frameworks/Sparkle.framework"
     ditto "$SPARKLE_FW/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.framework"
 fi
+# Traductions : chaque dossier .lproj est copié tel quel dans les ressources du bundle.
+if [[ -d Resources ]]; then
+    for lproj in Resources/*.lproj; do
+        [[ -d "$lproj" ]] || continue
+        ditto "$lproj" "$APP/Contents/Resources/${lproj:t}"
+    done
+fi
 VERSION="${MACCLAIR_VERSION:-0.5.0}"
 BUILD_NUMBER="${MACCLAIR_BUILD:-5}"
 UPDATE_KEYS=""
@@ -71,6 +78,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <key>CFBundleShortVersionString</key><string>${VERSION}</string>
 <key>CFBundleVersion</key><string>${BUILD_NUMBER}</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
+<key>CFBundleDevelopmentRegion</key><string>fr</string>
+<key>CFBundleLocalizations</key><array><string>fr</string><string>en</string></array>
+<key>CFBundleDisplayName</key><string>MacClair</string>
 <key>NSPrincipalClass</key><string>NSApplication</string>
 ${UPDATE_KEYS}
 </dict></plist>

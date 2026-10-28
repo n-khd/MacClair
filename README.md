@@ -1,99 +1,99 @@
 # MacClair
 
-MacClair est une application macOS libre, en français, pour examiner l’espace disque et déplacer prudemment des fichiers personnels vers la Corbeille. L’interface s’inspire de la catégorie des utilitaires de nettoyage Mac, mais le code, les textes et l’icône sont originaux. La version actuelle **ne possède pas toutes les fonctionnalités de CleanMyMac** et n’a pas subi le même niveau de validation.
+**English** · [Français](README.fr.md)
 
-MacClair privilégie les analyses locales et les opérations explicites : tout fichier déplacé part à la Corbeille, où il peut être restauré, et chaque action est confirmée.
+MacClair is a free, open-source macOS utility that maps your disk usage and moves personal files to the Trash — carefully. It sits in the same category as the commercial Mac cleaners, but the code, the wording and the icon are original. It does **not** implement every feature of CleanMyMac, and it has not been through the same level of validation.
 
-![Icône MacClair](Assets/MacClair-icon.png)
+Everything is local and explicit: every file that leaves its place goes to the Trash, where it can be restored, and every action is confirmed. No account, no telemetry, no network call.
 
-## Télécharger
+![MacClair icon](Assets/MacClair-icon.png)
 
-Trois façons, au choix :
+## Install
 
-**Homebrew** (mises à jour gérées par `brew upgrade`)
+Three ways, pick one.
+
+**Homebrew** (updates handled by `brew upgrade`)
 
 ```sh
 brew install --cask n-khd/tap/macclair
 ```
 
-**DMG** — téléchargez `MacClair-<version>-macOS-arm64.dmg` depuis la page [Releases](../../releases), ouvrez l’image et glissez `MacClair` dans le dossier Applications.
+**DMG** — download `MacClair-<version>-macOS-arm64.dmg` from the [Releases](https://github.com/n-khd/MacClair/releases) page, open the image and drag `MacClair` into Applications.
 
-**Zip** — téléchargez `MacClair-<version>-macOS-arm64.zip`, décompressez-le et déplacez `MacClair.app` dans le dossier Applications.
+**Zip** — download `MacClair-<version>-macOS-arm64.zip`, unzip it and move `MacClair.app` into Applications.
 
-Ces archives sont prévues pour les Mac Apple Silicon sous macOS 14 ou plus récent. Le code source est également téléchargeable depuis la même page.
+All builds target Apple Silicon Macs running macOS 14 or later. The source code is on the same release page.
 
-### Signature et notarisation
+### Signed and notarized
 
-Les archives ZIP à partir de la version 0.5.1 et les DMG à partir de la version 0.5.2 sont signés avec un certificat **Developer ID Application** et **notariées par Apple** ; le ticket de notarisation est agrafé dans l’application. macOS peut ainsi vérifier leur provenance et leur notarisation.
+Every release is signed with a **Developer ID Application** certificate and **notarized by Apple**; the notarization ticket is stapled inside the app. macOS can therefore verify both the origin and the notarization — no Gatekeeper warning, no `xattr` trick, no right-click workaround.
 
-Pour vérifier l’intégrité du téléchargement, comparez la somme SHA-256 de l’archive avec le fichier `SHA256SUMS` de la même release :
+To check the integrity of a download, compare its SHA-256 with the `SHA256SUMS` file of the same release:
 
 ```sh
-shasum -a 256 MacClair-0.6.2-macOS-arm64.dmg
+shasum -a 256 MacClair-0.8.0-macOS-arm64.dmg
 ```
 
-Les builds sont produits par le workflow GitHub Actions `.github/workflows/release-notarized.yml` (compilation, signature Developer ID, notarisation Apple, agrafage, contrôle `spctl`, publication). L’archive 0.5.0, plus ancienne, était seulement signée ad hoc et nécessitait un contournement manuel de Gatekeeper.
+Builds are produced by `.github/workflows/release-notarized.yml` (compile, Developer ID signature, Apple notarization, stapling, `spctl` check, publishing).
 
-### Mises à jour
+### Updates
 
-À partir de la version 0.6.0, MacClair se met à jour toute seule via [Sparkle](https://sparkle-project.org) : elle vérifie le flux signé `appcast.xml`, prévient quand une version plus récente existe et l’installe. La vérification manuelle est dans le menu **MacClair › Rechercher des mises à jour…**.
+MacClair updates itself through [Sparkle](https://sparkle-project.org): it reads a signed `appcast.xml` feed, tells you when a newer version exists and installs it. Manual check: **MacClair › Check for updates…**.
 
-Chaque mise à jour est authentifiée par une signature EdDSA (clé publique dans `SUPublicEDKey` de l’Info.plist) : un binaire modifié ou un flux détourné est refusé, macOS vérifie en plus la signature Developer ID et la notarisation avant de remplacer l’application.
+Every update is authenticated by an EdDSA signature (public key in `SUPublicEDKey`) on top of the Developer ID signature and notarization, so a modified binary or a hijacked feed is refused.
 
-## Utiliser MacClair avec un agent MCP
+## Language
 
-Les versions construites avec ce serveur incluent `macclair-mcp` dans l’application. Le client lance ce processus local à la demande : aucune adresse réseau ni clé API n’est nécessaire. Installez d’abord MacClair 0.7.0 ou plus récente dans `/Applications` : `macclair-mcp` est inclus dans l’application depuis cette version.
+The interface ships in **French** and **English**. By default MacClair follows the macOS language; you can force it in the **MacClair › Langue / Language** menu. Technical strings (paths, bundle identifiers) are never translated.
 
-La sécurité est volontairement fermée : `move_to_trash` exige un jeton **et** le chemin exact confirmé par l’utilisateur, puis affiche une alerte native avant tout déplacement. Toute demande hors de `~/Téléchargements`, sur un lien symbolique ou sur un fichier modifié depuis la préparation est refusée.
+## Use MacClair from an MCP agent
 
-Pour Codex :
+The app bundles a local MCP server, `macclair-mcp`. Your client launches that process on demand: no network address, no API key. Install MacClair 0.7.0 or later in `/Applications` first — `macclair-mcp` is included in the app from that version.
 
 ```sh
+# Codex
 codex mcp add macclair -- /Applications/MacClair.app/Contents/MacOS/macclair-mcp
-```
 
-Pour Claude Code :
-
-```sh
+# Claude Code
 claude mcp add --transport stdio --scope user macclair -- /Applications/MacClair.app/Contents/MacOS/macclair-mcp
 ```
 
-Redémarrez le client si nécessaire, puis demandez-lui par exemple « analyse mes doublons dans Téléchargements ». Les commandes et leur portée sont décrites dans les documentations [Codex](https://developers.openai.com/codex/mcp) et [Claude Code](https://code.claude.com/docs/en/mcp). Si l’application est installée ailleurs, adaptez le chemin. Pour une compilation locale, remplacez `/Applications/MacClair.app` par le chemin absolu vers `dist/MacClair.app`.
+Restart the client if needed, then ask something like “find duplicates in my Downloads”. For a local build, use the absolute path to `dist/MacClair.app` instead.
 
-Le serveur expose deux analyses (`scan_downloads`, `scan_cleanup`) ainsi que `prepare_trash` et `move_to_trash`. Le déplacement exige un jeton préparé dans la même session et une confirmation macOS pour chaque fichier ; un fichier modifié depuis sa préparation est refusé. Seuls les fichiers ordinaires admissibles de Téléchargements peuvent être déplacés. Cette opération ne garantit pas qu’une autre copie du fichier existe : vérifiez le chemin et conservez une sauvegarde.
+Security is deliberately strict: `move_to_trash` requires a prepared token **and** the exact path the user confirmed, then shows a native alert before anything moves. Anything outside `~/Downloads`, a symbolic link, or a file modified since it was prepared is refused.
 
-Les résultats contiennent des noms et chemins potentiellement personnels : ils sont transmis au client et peuvent être envoyés à son fournisseur selon ses réglages. Les autorisations macOS du processus client et les limites des analyses peuvent rendre les résultats incomplets. Le serveur ne contourne pas les protections du système.
+The server exposes two read-only scans (`scan_downloads`, `scan_cleanup`) plus `prepare_trash` and `move_to_trash`. Results contain file names and paths, which are personal data: they go to the client and may be forwarded to its provider depending on your settings.
 
-## Fonctions disponibles
+## What it does
 
-- Vue d’ensemble et analyses locales.
-- Caches, journaux et anciens installateurs du compte : déplaçables vers la Corbeille après confirmation (éléments de plus de 30 jours).
-- Inventaire en lecture seule de l’état des protections macOS, des applications, des agents de démarrage, du stockage et des dossiers cloud présents localement.
-- Inventaire local ciblé des caches Safari, Chrome et Firefox et des dossiers « Mail Downloads » accessibles, avec limites et erreurs signalées. Il ne couvre pas tous les navigateurs ni toutes les pièces jointes Mail.
-- Liste des gros fichiers, des installateurs, des doublons exacts et des images ressemblantes avec noms et chemins réels.
-- Préparation automatique des copies supplémentaires des doublons, avec une copie conservée par groupe et confirmation unique avant déplacement.
-- Déplacement vers la Corbeille des fichiers sélectionnés, uniquement dans `~/Downloads`.
-- Télescope pour examiner un dossier choisi, sans suivre les liens symboliques.
+- Overview and local scans of your own account.
+- Caches, logs and old installers (older than 30 days) of your account, movable to the Trash after confirmation.
+- Read-only inventory of macOS protections, installed applications, launch agents, storage and locally present cloud folders.
+- Targeted local inventory of Safari, Chrome and Firefox caches and reachable “Mail Downloads” folders, with limits and errors reported.
+- Large files, old installers, exact duplicates and similar images, with real names and paths.
+- Automatic preparation of redundant duplicate copies, keeping one copy per group, with a single confirmation before moving.
+- Trash moves for selected files, restricted to `~/Downloads`.
+- A telescope view to inspect a chosen folder without following symbolic links.
 
-L’analyse générale est ciblée : elle examine les fichiers de Téléchargements (ou d’un sous-dossier choisi), inventorie les caches et journaux du compte et les installateurs de plus de 30 jours, puis relève les applications et l’état de certaines protections macOS. Elle ne recherche pas les malwares et ne parcourt pas l’ensemble du disque. La recherche de doublons exclut les dossiers cachés, paquets et certains dossiers de projets ; comparer le contenu complet de très gros fichiers peut prendre du temps. Elle est limitée à 10 000 fichiers et 80 000 entrées ; l’inventaire des fichiers anciens est limité à 20 000 résultats par catégorie. Les limites et les erreurs d’accès sont signalées dans l’interface et peuvent rendre les résultats incomplets. Une analyse rapide peut donc être normale et ne signifie pas que tout le Mac a été vérifié.
+The general scan is focused: it looks at Downloads (or a chosen subfolder), inventories your account’s caches and logs and installers older than 30 days, then reports applications and the state of some macOS protections. It does not hunt malware and does not walk the whole disk. Duplicate search skips hidden folders, packages and some project folders; comparing very large files in full can take a while. It is capped at 10,000 files and 80,000 entries, and the old-files inventory at 20,000 results per category. Limits and access errors are reported in the interface and can make results incomplete.
 
-L’interface ne présente que des fonctions réellement disponibles ; les fonctions non implémentées ne sont pas affichées. Voir [l’analyse des fonctions](REVERSE_ENGINEERING.md) et la [feuille de route](ROADMAP.md) pour le périmètre actuel et les écarts.
+See [REVERSE_ENGINEERING.md](REVERSE_ENGINEERING.md) and [ROADMAP.md](ROADMAP.md) for what is implemented today and what is not.
 
-## Utiliser les doublons
+## Duplicates
 
-1. Ouvrez **Mes fichiers inutiles** et lancez l’analyse.
-2. Dans **Doublons**, cliquez sur **Nettoyer les doublons en lot…**. MacClair prépare les copies en trop et conserve une copie de chaque groupe.
-3. Examinez les noms et chemins, puis confirmez le déplacement vers la Corbeille. Les groupes répartis entre plusieurs dossiers ou situés dans des projets sont ignorés par défaut.
+1. Open **Unneeded files** and run the scan.
+2. In **Duplicates**, click **Clean duplicates in bulk…**. MacClair prepares the redundant copies and keeps one copy per group.
+3. Review the names and paths, then confirm the move to the Trash. Groups spread over several folders, or inside projects, are skipped by default.
 
-## Sécurité et limites
+## Safety and limits
 
-MacClair n’efface aucun fichier système et n’exécute aucune commande de maintenance. Le déplacement vers la Corbeille est limité aux fichiers ordinaires dans `~/Downloads`. Avant l’opération, l’application contrôle notamment le chemin, le type de fichier, l’inode, le volume, la taille et la date de modification. Les liens symboliques, les dossiers cachés, les composants internes de dépôts Git et les paquets d’applications sont rejetés. Les caches, journaux et installateurs sélectionnés sont déplacés vers la Corbeille (jamais effacés définitivement) après confirmation explicite.
+MacClair never deletes a system file and never runs a maintenance command. Trash moves are restricted to regular files inside `~/Downloads`. Before acting, the app checks the path, the file type, the inode, the volume, the size and the modification date. Symbolic links, hidden folders, internal Git components and application packages are rejected. Selected caches, logs and installers are moved to the Trash (never deleted for good) after an explicit confirmation.
 
-Ces contrôles réduisent le risque sans garantir une sécurité absolue. L’application n’a pas fait l’objet d’un audit indépendant et ne protège pas encore de manière atomique contre toutes les modifications concurrentes du système de fichiers. Vérifiez la sélection avant de confirmer et gardez une sauvegarde de vos données importantes.
+These checks reduce risk; they do not guarantee absolute safety. The app has not been independently audited and does not yet protect atomically against every concurrent filesystem change. Review your selection before confirming, and keep a backup of important data.
 
-## Compiler et tester
+## Build and test
 
-Prérequis : macOS 14 ou plus récent et Xcode ou les outils de ligne de commande Apple avec Swift 6. La compilation utilise le SDK macOS installé localement et cible l’architecture du Mac utilisé.
+Requirements: macOS 14 or later, plus Xcode or the Apple command-line tools with Swift 6. The build uses the locally installed macOS SDK and targets the architecture of the current Mac.
 
 ```sh
 ./test.sh
@@ -101,8 +101,8 @@ Prérequis : macOS 14 ou plus récent et Xcode ou les outils de ligne de command
 open dist/MacClair.app
 ```
 
-L’application compilée se trouve dans `dist/MacClair.app`. Le script applique une signature ad hoc pour le développement local. Il ne réalise ni signature Developer ID ni notarisation.
+The built app lands in `dist/MacClair.app`. The script applies an ad-hoc signature for local development; it does no Developer ID signing and no notarization.
 
-## Participer
+## Contributing
 
-Les problèmes et propositions peuvent être ouverts dans les issues GitHub. Pour contribuer, consultez [CONTRIBUTING.md](CONTRIBUTING.md) ; pour signaler une vulnérabilité, consultez [SECURITY.md](SECURITY.md). Le code et les ressources de ce dépôt sont distribués sous [licence MIT](LICENSE). MacClair est un projet indépendant et n’est pas affilié à MacPaw.
+Issues and proposals are welcome in GitHub issues. For contributions see [CONTRIBUTING.md](CONTRIBUTING.md); to report a vulnerability see [SECURITY.md](SECURITY.md). Code and assets are released under the [MIT license](LICENSE). MacClair is an independent project and is not affiliated with MacPaw.

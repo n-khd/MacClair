@@ -41,6 +41,15 @@ jobs:
           ls -l dist/MacClair.app/Contents/MacOS/
           codesign -dv --verbose=2 dist/MacClair.app 2>&1 | head -5
 
+      - name: Vérifier les traductions
+        run: |
+          set -euo pipefail
+          plutil -lint Resources/en.lproj/Localizable.strings
+          ls -R dist/MacClair.app/Contents/Resources | head -20
+          test -f dist/MacClair.app/Contents/Resources/en.lproj/Localizable.strings
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleLocalizations' dist/MacClair.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleDevelopmentRegion' dist/MacClair.app/Contents/Info.plist
+
       - name: Compiler et lancer la suite de tests
         run: |
           set -euo pipefail

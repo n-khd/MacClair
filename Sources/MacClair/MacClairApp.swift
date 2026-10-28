@@ -5,22 +5,43 @@ struct MacClairApp: App {
     #if canImport(Sparkle)
     @StateObject private var updates = UpdateController()
     #endif
+    /// Langue choisie dans le menu MacClair : « auto » suit la langue du système.
+    @AppStorage("macclair.language") private var language = "auto"
+
+    private var activeLocale: Locale {
+        switch language {
+        case "fr": return Locale(identifier: "fr")
+        case "en": return Locale(identifier: "en")
+        default:
+            let preferred = Locale.preferredLanguages.first ?? "fr"
+            return Locale(identifier: preferred.hasPrefix("en") ? "en" : "fr")
+        }
+    }
 
     var body: some Scene {
         WindowGroup("MacClair") {
             ModernContentView()
                 .frame(minWidth: 1100, minHeight: 720)
+                .environment(\.locale, activeLocale)
         }
         .windowStyle(.hiddenTitleBar)
-        #if canImport(Sparkle)
         .commands {
             CommandGroup(after: .appInfo) {
+                #if canImport(Sparkle)
                 Button("Rechercher des mises à jour…") {
                     updates.checkForUpdates()
                 }
+                #endif
+                Menu("Langue / Language") {
+                    Picker("Langue / Language", selection: $language) {
+                        Text("Système / System").tag("auto")
+                        Text("Français").tag("fr")
+                        Text("English").tag("en")
+                    }
+                    .pickerStyle(.inline)
+                }
             }
         }
-        #endif
     }
 }
 

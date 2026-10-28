@@ -1,0 +1,197 @@
+/* MacClair — English strings. Key = the French source text used in the SwiftUI views. */
+
+/* Onglets, titres, navigation */
+"OPTIMISEUR MAC" = "MAC OPTIMIZER";
+"VUE D’ENSEMBLE" = "OVERVIEW";
+"Fichiers inutiles" = "Unneeded files";
+"Gros fichiers" = "Large files";
+"Images similaires" = "Similar images";
+"Télescope" = "Telescope";
+"Activité" = "Activity";
+"Détails" = "Details";
+"Détails & sécurité" = "Details & security";
+"Sécurité et intégrité" = "Security & integrity";
+"Répartition du stockage" = "Storage breakdown";
+"Visualisation du disque" = "Disk visualization";
+"Diagnostic de votre Mac" = "Your Mac's diagnosis";
+"Diagnostic global et espace" = "Overall diagnosis and space";
+"Diagnostic terminé" = "Diagnosis complete";
+"État du Mac" = "Mac status";
+"État indisponible" = "Status unavailable";
+"Mac optimisé" = "Mac optimized";
+
+/* Actions */
+"Lancer l’analyse" = "Run the scan";
+"Analyser caches Xcode" = "Scan Xcode caches";
+"Analyser caches navigateurs" = "Scan browser caches";
+"Rechercher images similaires" = "Find similar images";
+"Rechercher des mises à jour…" = "Check for updates…";
+"Déplacer vers la Corbeille" = "Move to Trash";
+"Mettre à la Corbeille" = "Move to Trash";
+"Nettoyer la sélection" = "Clean selection";
+"Nettoyer maintenant ?" = "Clean now?";
+"Déplacer vers la Corbeille ?" = "Move to Trash?";
+"Déplacer les fichiers sélectionnés ?" = "Move the selected files to the Trash?";
+"Désinstaller" = "Uninstall";
+"Tout cocher" = "Select all";
+"Tout décocher" = "Deselect all";
+"Réinitialiser" = "Reset";
+"Changer de dossier…" = "Change folder…";
+"Ouvrir la Corbeille dans le Finder" = "Open the Trash in Finder";
+"Gérer dans Réglages Système" = "Open System Settings";
+"Sélectionner les copies redondantes" = "Select redundant copies";
+"Ouverture Finder directe" = "Direct Finder opening";
+
+/* États et messages */
+"Prêt à scanner" = "Ready to scan";
+"Analyse en cours…" = "Scanning…";
+"Analyse du Mac…" = "Scanning your Mac…";
+"Analyse approfondie en cours…" = "Deep scan in progress…";
+"Analyse rapide, sans risque et réversible." = "Fast, safe and reversible.";
+"Recherche des caches, logs et doublons." = "Looking for caches, logs and duplicates.";
+"Préparation…" = "Preparing…";
+"Déplacement en cours…" = "Moving…";
+"Déplacement vers la Corbeille…" = "Moving to the Trash…";
+"Désinstallation…" = "Uninstalling…";
+"Calcul des résidus en cours…" = "Calculating leftovers…";
+"EN COURS" = "IN PROGRESS";
+"À confirmer" = "To confirm";
+"Conservé" = "Kept";
+"Cassé" = "Broken";
+"Éléments" = "Items";
+"Éléments repérés" = "Items found";
+"Espace analysé" = "Space analyzed";
+"Espace libéré" = "Space freed";
+"Mémoire" = "Memory";
+"Développement" = "Development";
+"Navigateurs & Mail" = "Browsers & Mail";
+"Caches & Logs" = "Caches & Logs";
+"Caches et journaux" = "Caches and logs";
+"Caches et journaux obsolètes" = "Outdated caches and logs";
+"Caches système & apps" = "System & app caches";
+"Fichiers temporaires > 30 jours" = "Temporary files older than 30 days";
+"Installateurs anciens" = "Old installers";
+"Gros fichiers et doublons" = "Large files and duplicates";
+"Dossiers volumineux" = "Large folders";
+"Dossiers synchronisés" = "Synced folders";
+"Dossiers locaux détectés" = "Local folders found";
+"Désinstallation et résidus" = "Uninstall and leftovers";
+"Ouverture & Démarrage" = "Startup & Launch";
+"Ressources et démarrage" = "Resources and startup";
+"Historique des nettoyages" = "Cleaning history";
+"Nettoyage terminé" = "Cleaning complete";
+"Aucun fichier superflu détecté." = "No unnecessary files found.";
+"Aucun fichier sélectionné" = "No file selected";
+"Aucun fichier à nettoyer." = "No file to clean.";
+"Aucun élément déplacé." = "No item moved.";
+"Aucune activité enregistrée." = "No activity recorded.";
+"Aucune copie préparée." = "No copy prepared.";
+"Aucun dossier synchronisé trouvé." = "No synced folder found.";
+"Aucun fichier n’a été déplacé." = "No file was moved.";
+"100% réversible via la Corbeille" = "100% reversible via the Trash";
+"0 octet" = "0 bytes";
+
+/* Invitations */
+"Lancez l’analyse." = "Run the scan to begin.";
+"Lancez l’analyse pour voir les gros fichiers." = "Run the scan to see the large files.";
+"Lancez l’analyse pour repérer les doublons." = "Run the scan to find duplicates.";
+"Lancez l’analyse pour inventorier vos applications." = "Run the scan to inventory your applications.";
+"Lancez la cartographie." = "Start the mapping.";
+"Choisissez un sous-dossier de Téléchargements." = "Pick a subfolder of Downloads.";
+"Inventaire local en lecture seule" = "Local, read-only inventory";
+"Cette catégorie est consultable uniquement." = "This category is read-only.";
+
+/* Sécurité */
+"Chiffrement du disque" = "Disk encryption";
+"Intégrité du système" = "System integrity";
+"SIP (Intégrité)" = "SIP (integrity)";
+"Signature des applications" = "Application signing";
+"Réglages Sécurité macOS" = "macOS Security settings";
+"État de sécurité macOS" = "macOS security status";
+
+/* Erreurs */
+"Seuls les fichiers de Téléchargements peuvent être déplacés." = "Only files in Downloads can be moved.";
+"Ce fichier n’est pas un fichier ordinaire." = "This file is not a regular file.";
+"Ce fichier a changé depuis sa sélection. Relancez l’analyse." = "This file changed since it was selected. Run the scan again.";
+"Une copie doit rester dans chaque groupe de doublons." = "One copy must remain in each duplicate group.";
+"Le doublon ou la copie conservée a changé ou est inaccessible. Relancez l’analyse." = "The duplicate or the kept copy changed or is unreachable. Run the scan again.";
+"Les fichiers internes de projets, de paquets et les dossiers cachés sont protégés." = "Files inside projects and packages, and hidden folders, are protected.";
+"Le fichier a changé depuis le scan. Relancez le scan." = "The file changed since the scan. Run it again.";
+"Le fichier se trouve hors des dossiers autorisés." = "The file is outside the allowed folders.";
+"Les liens symboliques ne sont pas supprimés." = "Symbolic links are never removed.";
+"Cet élément est hors des emplacements autorisés ou est un lien symbolique." = "This item is outside the allowed locations or is a symbolic link.";
+
+/* Catégories d’audits */
+"Agent partagé" = "Shared agent";
+"Agent utilisateur" = "User agent";
+"Service partagé" = "Shared service";
+"Agent de lancement" = "Launch agent";
+"Données d’application" = "Application data";
+"Préférences" = "Preferences";
+"Données Web" = "Web data";
+"Stockage HTTP" = "HTTP storage";
+"État enregistré" = "Saved state";
+"Scripts d’application" = "Application scripts";
+"Cache Chrome" = "Chrome cache";
+"Cache Firefox" = "Firefox cache";
+"Cache Safari" = "Safari cache";
+"Téléchargements de Mail" = "Mail downloads";
+"Téléchargements de Mail (ancien emplacement)" = "Mail downloads (old location)";
+"Archives Xcode" = "Xcode archives";
+"Caches CoreSimulator" = "CoreSimulator caches";
+"Device Support iOS" = "iOS device support";
+"Device Support tvOS" = "tvOS device support";
+"Device Support watchOS" = "watchOS device support";
+"Données dérivées Xcode" = "Xcode derived data";
+"DerivedData Xcode et simulateurs" = "Xcode DerivedData and simulators";
+"Sauvegardes d’appareils iOS" = "iOS device backups";
+"Simulateurs iOS" = "iOS simulators";
+"Comparaison des doublons" = "Duplicate comparison";
+"Inventaire des applications et protections" = "Applications and protections inventory";
+"Parcours des fichiers" = "File walking";
+"Caches utilisateur" = "User caches";
+"Images disque téléchargées" = "Downloaded disk images";
+
+/* Étapes / orbital */
+"Noyau 3D interactif MacClair" = "MacClair interactive 3D core";
+"Répartition du stockage" = "Storage breakdown";
+
+/* Formats avec interpolation (clés générées par SwiftUI) */
+"Applications (%lld)" = "Applications (%lld)";
+"Gros fichiers (%lld)" = "Large files (%lld)";
+"Images similaires (%lld)" = "Similar images (%lld)";
+"Doublons (%lld groupes)" = "Duplicates (%lld groups)";
+"Éléments anciens (%lld)" = "Old items (%lld)";
+"Ouverture & Démarrage (%lld)" = "Startup & Launch (%lld)";
+"Nettoyer %lld élément(s)" = "Clean %lld item(s)";
+"Nettoyer (%@)" = "Clean (%@)";
+"Déplacer %lld élément(s)" = "Move %lld item(s)";
+"Déplacer %lld fichier(s)" = "Move %lld file(s)";
+"Désinstallation · %@" = "Uninstall · %@";
+"Dossier : %@" = "Folder: %@";
+"Déplacement %lld/%lld…" = "Moving %lld/%lld…";
+"%lld · %@ éléments" = "%lld · %@ items";
+"%@ · %lld éléments parcourus" = "%@ · %lld files scanned";
+"%lld fichiers examinés" = "%lld files examined";
+"%lld copie(s) préparée(s)." = "%lld copy(ies) prepared.";
+"%@ · %lld copies" = "%@ · %lld copies";
+"%lld éléments anciens prêts pour la Corbeille." = "%lld old items ready for the Trash.";
+"%lld fichier(s) déplacé(s)." = "%lld file(s) moved.";
+"Taille : %@. Restauration possible depuis la Corbeille." = "Size: %@. Can be restored from the Trash.";
+"Taille : %@. Déplacement réversible vers la Corbeille." = "Size: %@. Moving it to the Trash is reversible.";
+"Capacité : %@" = "Capacity: %@";
+"Espace libre : %@" = "Free space: %@";
+"%@ libres" = "%@ free";
+"%@ à libérer" = "%@ to free";
+"%lld cœurs" = "%lld cores";
+"Échecs : " = "Failures: ";
+"• Caches et journaux > 30 jours uniquement." = "• Caches and logs older than 30 days only.";
+"• Doublons vérifiés par empreinte SHA-256 (copie protégée)." = "• Duplicates verified with a SHA-256 hash (one copy kept).";
+"• Déplacements réversibles dans la Corbeille." = "• Moves are reversible via the Trash.";
+
+/* Ajouts : libellés d’état des boutons */
+"Analyser" = "Scan";
+"Re-scanner" = "Scan again";
+"Analyse…" = "Scanning…";
+"%lld sélectionné(s) · %@" = "%lld selected · %@";
+"MacClair — %@" = "MacClair — %@";
