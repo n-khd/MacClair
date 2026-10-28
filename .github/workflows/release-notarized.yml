@@ -120,7 +120,18 @@ jobs:
           ditto -c -k --keepParent dist/MacClair.app "$RUNNER_TEMP/notarize-app.zip"
           xcrun notarytool submit "$RUNNER_TEMP/notarize-app.zip" \
             --key "$NOTARY_KEY" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" \
-            --wait --timeout 40m
+            --wait --timeout 40m --output-format json > "$RUNNER_TEMP/submit-app.json" || true
+          cat "$RUNNER_TEMP/submit-app.json"
+          STATUS="$(jq -r '.status // "?"' "$RUNNER_TEMP/submit-app.json")"
+          ID="$(jq -r '.id // empty' "$RUNNER_TEMP/submit-app.json")"
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "::error::Notarisation de l'application : $STATUS"
+            if [ -n "$ID" ]; then
+              xcrun notarytool log "$ID" \
+                --key "$NOTARY_KEY" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" || true
+            fi
+            exit 1
+          fi
           rm -f "$RUNNER_TEMP/notarize-app.zip"
           xcrun stapler staple -v dist/MacClair.app
           spctl -a -vvv -t exec dist/MacClair.app
@@ -154,7 +165,18 @@ jobs:
           set -euo pipefail
           xcrun notarytool submit "dist/$DMG" \
             --key "$NOTARY_KEY" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" \
-            --wait --timeout 40m
+            --wait --timeout 40m --output-format json > "$RUNNER_TEMP/submit-dmg.json" || true
+          cat "$RUNNER_TEMP/submit-dmg.json"
+          STATUS="$(jq -r '.status // "?"' "$RUNNER_TEMP/submit-dmg.json")"
+          ID="$(jq -r '.id // empty' "$RUNNER_TEMP/submit-dmg.json")"
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "::error::Notarisation du DMG : $STATUS"
+            if [ -n "$ID" ]; then
+              xcrun notarytool log "$ID" \
+                --key "$NOTARY_KEY" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" || true
+            fi
+            exit 1
+          fi
           xcrun stapler staple -v "dist/$DMG"
           xcrun stapler validate -v "dist/$DMG"
           spctl -a -t open --context context:primary-signature -v "dist/$DMG"
