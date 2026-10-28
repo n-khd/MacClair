@@ -6,10 +6,43 @@ struct MCPServer {
     private var prepared: [String: TrashCandidate] = [:]
     private let supportedVersions = ["2025-06-18", "2025-03-26", "2024-11-05"]
     private let tools: [[String: Any]] = [
-        ["name": "scan_downloads", "description": "Analyse locale en lecture seule des gros fichiers et doublons exacts dans Téléchargements. Les chemins sont des données personnelles. Les très gros fichiers peuvent allonger l’analyse.", "inputSchema": ["type": "object", "properties": [:], "additionalProperties": false], "annotations": ["readOnlyHint": true, "destructiveHint": false, "openWorldHint": false]],
-        ["name": "prepare_trash", "description": "Prépare un fichier ordinaire dans Téléchargements pour la Corbeille. Retourne un jeton valable uniquement dans cette session, sans modifier le fichier.", "inputSchema": ["type": "object", "properties": ["path": ["type": "string", "description": "Chemin absolu du fichier"]], "required": ["path"], "additionalProperties": false], "annotations": ["readOnlyHint": true, "destructiveHint": false, "openWorldHint": false]],
-        ["name": "move_to_trash", "description": "Demande une confirmation native à l’utilisateur puis déplace vers la Corbeille un fichier préparé et inchangé. Ne jamais appeler sans demande explicite de l’utilisateur.", "inputSchema": ["type": "object", "properties": ["token": ["type": "string"]], "required": ["token"], "additionalProperties": false], "annotations": ["readOnlyHint": false, "destructiveHint": true, "openWorldHint": false]],
-        ["name": "scan_cleanup", "description": "Inventorie en lecture seule les anciens caches, journaux et installateurs. Aucun fichier n'est déplacé.", "inputSchema": ["type": "object", "properties": [:], "additionalProperties": false], "annotations": ["readOnlyHint": true, "destructiveHint": false, "openWorldHint": false]]
+        [
+            "name": "scan_downloads",
+            "description": "Analyse locale en lecture seule des gros fichiers et doublons exacts dans Téléchargements. Les chemins sont des données personnelles. Les très gros fichiers peuvent allonger l’analyse.",
+            "inputSchema": ["type": "object", "properties": [:], "additionalProperties": false],
+            "annotations": ["readOnlyHint": true, "destructiveHint": false, "openWorldHint": false]
+        ],
+        [
+            "name": "prepare_trash",
+            "description": "Prépare un fichier ordinaire dans Téléchargements pour la Corbeille. Retourne un jeton valable uniquement dans cette session, sans modifier le fichier.",
+            "inputSchema": [
+                "type": "object",
+                "properties": ["path": ["type": "string", "description": "Chemin absolu du fichier"]],
+                "required": ["path"],
+                "additionalProperties": false
+            ],
+            "annotations": ["readOnlyHint": true, "destructiveHint": false, "openWorldHint": false]
+        ],
+        [
+            "name": "move_to_trash",
+            "description": "Déplace vers la Corbeille un fichier préparé et inchangé. Demande à l’utilisateur de confirmer le chemin exact : ne jamais appeler sans son accord explicite.",
+            "inputSchema": [
+                "type": "object",
+                "properties": [
+                    "token": ["type": "string"],
+                    "confirmPath": ["type": "string", "description": "Chemin exact confirmé par l’utilisateur, identique à celui de prepare_trash"]
+                ],
+                "required": ["token", "confirmPath"],
+                "additionalProperties": false
+            ],
+            "annotations": ["readOnlyHint": false, "destructiveHint": true, "openWorldHint": false]
+        ],
+        [
+            "name": "scan_cleanup",
+            "description": "Inventorie en lecture seule les anciens caches, journaux et installateurs. Aucun fichier n'est déplacé.",
+            "inputSchema": ["type": "object", "properties": [:], "additionalProperties": false],
+            "annotations": ["readOnlyHint": true, "destructiveHint": false, "openWorldHint": false]
+        ]
     ]
 
     mutating func run() {
@@ -73,9 +106,17 @@ struct MCPServer {
                                        "message": "Aucun déplacement effectué. La confirmation de l’utilisateur sera demandée avant le déplacement."])
                     } catch { toolError(id, error.localizedDescription) }
                 case "move_to_trash":
-                    guard args.count == 1, let token = args["token"] as? String,
+                    guard args.count == 2,
+                          let token = args["token"] as? String,
+                          let confirmedPath = args["confirmPath"] as? String,
                           let candidate = prepared.removeValue(forKey: token) else {
-                        error(id, -32602, "Jeton inconnu ou déjà utilisé"); continue
+                        error(id, -32602, "Jeton ou chemin de confirmation manquant"); continue
+                    }
+                    // Le client doit renvoyer exactement le chemin montré à l'utilisateur :
+                    // un jeton seul ne suffit pas à déplacer un fichier.
+                    guard confirmedPath == candidate.url.path else {
+                        toolError(id, "Le chemin confirmé ne correspond pas au fichier préparé. Aucun déplacement.")
+                        continue
                     }
                     do {
                         try SafeTrash().validate(candidate)
@@ -93,6 +134,8 @@ struct MCPServer {
     private func confirm(_ candidate: TrashCandidate) -> Bool {
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
+        // Sans finishLaunching, une alerte depuis un binaire stdio peut ne jamais s'afficher.
+        app.finishLaunching()
         app.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.alertStyle = .warning

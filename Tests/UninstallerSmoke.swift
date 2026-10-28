@@ -56,6 +56,32 @@ struct UninstallerSmoke {
         precondition(!fm.fileExists(atPath: cache.path))
         let trashed = (try? fm.contentsOfDirectory(atPath: trash.path)) ?? []
         precondition(trashed.count == plan.items.count)
-        print("UninstallerSmoke OK: résidus par bundle, emplacements autorisés et corbeille isolée")
+
+        // Un identifiant de bundle piégé ne doit jamais sortir de son dossier attendu.
+        precondition(UninstallerPlanner.isValidBundleID("com.example.fake"))
+        precondition(!UninstallerPlanner.isValidBundleID("../Keychains"))
+        precondition(!UninstallerPlanner.isValidBundleID("com.example/../Keychains"))
+        precondition(!UninstallerPlanner.isValidBundleID(""))
+
+        let keychains = home.appendingPathComponent("Library/Keychains")
+        try fm.createDirectory(at: keychains, withIntermediateDirectories: true)
+        try Data(repeating: 9, count: 12).write(to: keychains.appendingPathComponent("login.keychain-db"))
+        precondition(!AppUninstaller.isAllowed(keychains, home: home), "le trousseau est interdit")
+        precondition(!AppUninstaller.isAllowed(keychains.appendingPathComponent("login.keychain-db"), home: home))
+
+        let evil = home.appendingPathComponent("Applications/Evil.app")
+        let evilContents = evil.appendingPathComponent("Contents")
+        try fm.createDirectory(at: evilContents.appendingPathComponent("MacOS"), withIntermediateDirectories: true)
+        try Data(repeating: 1, count: 10).write(to: evilContents.appendingPathComponent("MacOS/Evil"))
+        let evilPlist: [String: Any] = ["CFBundleIdentifier": "../Keychains",
+                                        "CFBundleName": "Evil",
+                                        "CFBundleExecutable": "Evil"]
+        let evilData = try PropertyListSerialization.data(fromPropertyList: evilPlist, format: .xml, options: 0)
+        try evilData.write(to: evilContents.appendingPathComponent("Info.plist"))
+        let evilPlan = UninstallerPlanner(home: home).plan(appURL: evil)
+        precondition(evilPlan.items.count == 1, "un identifiant piégé ne doit produire aucun résidu")
+        precondition(!evilPlan.items.contains { $0.url.path.hasPrefix(keychains.path) })
+
+        print("UninstallerSmoke OK: résidus par bundle, identifiant piégé rejeté, trousseau protégé et corbeille isolée")
     }
 }
