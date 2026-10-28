@@ -59,6 +59,7 @@ private enum ClutterTab: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+@MainActor
 struct ModernContentView: View {
     @State private var model = CleanupModel()
     @State private var module: Module = .smart
