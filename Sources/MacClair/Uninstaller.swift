@@ -43,23 +43,27 @@ struct UninstallerPlanner: Sendable {
         items.append(AppResidue(url: appURL, kind: "Application", bytes: appBytes))
 
         let bundleID = Bundle(url: appURL)?.bundleIdentifier
-        if let id = bundleID, !id.isEmpty, id != "—" {
+        if let id = bundleID, Self.isValidBundleID(id) {
             let library = home.appendingPathComponent("Library", isDirectory: true)
-            let candidates: [(String, URL)] = [
-                ("Données d’application", library.appendingPathComponent("Application Support/\(id)")),
-                ("Caches", library.appendingPathComponent("Caches/\(id)")),
-                ("Préférences", library.appendingPathComponent("Preferences/\(id).plist")),
-                ("Journaux", library.appendingPathComponent("Logs/\(id)")),
-                ("Conteneur", library.appendingPathComponent("Containers/\(id)")),
-                ("État enregistré", library.appendingPathComponent("Saved Application State/\(id).savedState")),
-                ("Données Web", library.appendingPathComponent("WebKit/\(id)")),
-                ("Stockage HTTP", library.appendingPathComponent("HTTPStorages/\(id)")),
-                ("Agent de lancement", library.appendingPathComponent("LaunchAgents/\(id).plist")),
-                ("Scripts d’application", library.appendingPathComponent("Application Scripts/\(id)"))
+            let candidates: [(String, URL, String)] = [
+                ("Données d’application", library.appendingPathComponent("Application Support"), id),
+                ("Caches", library.appendingPathComponent("Caches"), id),
+                ("Préférences", library.appendingPathComponent("Preferences"), id + ".plist"),
+                ("Journaux", library.appendingPathComponent("Logs"), id),
+                ("Conteneur", library.appendingPathComponent("Containers"), id),
+                ("État enregistré", library.appendingPathComponent("Saved Application State"), id + ".savedState"),
+                ("Données Web", library.appendingPathComponent("WebKit"), id),
+                ("Stockage HTTP", library.appendingPathComponent("HTTPStorages"), id),
+                ("Agent de lancement", library.appendingPathComponent("LaunchAgents"), id + ".plist"),
+                ("Scripts d’application", library.appendingPathComponent("Application Scripts"), id)
             ]
             var seen = Set<String>()
-            for (kind, url) in candidates {
-                let std = url.standardizedFileURL
+            for (kind, parent, name) in candidates {
+                let std = parent.appendingPathComponent(name).standardizedFileURL
+                // Le dossier parent résolu doit être exactement celui attendu : un identifiant
+                // contenant « ../ » ne peut donc pas sortir de son dossier.
+                guard std.deletingLastPathComponent().standardizedFileURL.path
+                    == parent.standardizedFileURL.path else { continue }
                 guard !seen.contains(std.path) else { continue }
                 var isDir: ObjCBool = false
                 guard FileManager.default.fileExists(atPath: std.path, isDirectory: &isDir) else { continue }
@@ -69,6 +73,15 @@ struct UninstallerPlanner: Sendable {
         }
         let total = items.reduce(Int64(0)) { $0 + $1.bytes }
         return AppUninstallPlan(app: appURL, items: items, totalBytes: total)
+    }
+
+    /// Un identifiant de bundle sert à construire des chemins sous `~/Library` : il ne doit
+    /// contenir que des caractères sûrs, sans barre oblique ni composant `..`.
+    static func isValidBundleID(_ id: String) -> Bool {
+        guard !id.isEmpty, id.count <= 155 else { return false }
+        guard !id.hasPrefix("."), !id.hasSuffix("."), !id.contains("..") else { return false }
+        let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-")
+        return id.unicodeScalars.allSatisfy { allowed.contains($0) }
     }
 
     /// Taille bornée d'un fichier ou d'un dossier (somme des fichiers réguliers).
@@ -120,6 +133,13 @@ struct AppUninstaller: Sendable {
         let path = std.resolvingSymlinksInPath().standardizedFileURL.path
         // Jamais de zone système.
         for forbidden in ["/System/", "/Library/", "/usr/", "/bin/", "/sbin/", "/private/"] where path.hasPrefix(forbidden) {
+            return false
+        }
+        // Zones sensibles de la maison : même sous ~/Library, on n'y touche pas.
+        let sensitive = ["/Library/Keychains/", "/Library/Messages/", "/Library/Mail/",
+                         "/Library/Safari/", "/Library/Cookies/", "/Library/Accounts/",
+                         "/Library/IdentityServices/", "/Library/Autosave Information/"]
+        for blocked in sensitive where path.hasPrefix(homePath + blocked) {
             return false
         }
         return path.hasPrefix(homePath + "/Library/")
