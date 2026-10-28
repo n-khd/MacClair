@@ -136,11 +136,12 @@ struct AppUninstaller: Sendable {
             return false
         }
         // Zones sensibles de la maison : même sous ~/Library, on n'y touche pas.
-        let sensitive = ["/Library/Keychains/", "/Library/Messages/", "/Library/Mail/",
-                         "/Library/Safari/", "/Library/Cookies/", "/Library/Accounts/",
-                         "/Library/IdentityServices/", "/Library/Autosave Information/"]
-        for blocked in sensitive where path.hasPrefix(homePath + blocked) {
-            return false
+        let sensitive = ["/Library/Keychains", "/Library/Messages", "/Library/Mail",
+                         "/Library/Safari", "/Library/Cookies", "/Library/Accounts",
+                         "/Library/IdentityServices", "/Library/Autosave Information"]
+        for blocked in sensitive {
+            let denied = homePath + blocked
+            if path == denied || path.hasPrefix(denied + "/") { return false }
         }
         return path.hasPrefix(homePath + "/Library/")
             || path.hasPrefix("/Applications/")
