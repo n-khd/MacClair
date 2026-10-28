@@ -90,11 +90,15 @@ jobs:
           mkdir -p vendor
           curl -fsSL -o "$RUNNER_TEMP/sparkle.tar.xz" \
             "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
-          tar -xf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP" Sparkle.framework
+          tar -xf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP" Sparkle.framework bin/sign_update
           rm -rf vendor/Sparkle.framework
           ditto "$RUNNER_TEMP/Sparkle.framework" vendor/Sparkle.framework
           du -sh vendor/Sparkle.framework
-          echo "SPARKLE_FRAMEWORK_DIR=$GITHUB_WORKSPACE/vendor" >> "$GITHUB_ENV"
+          "$RUNNER_TEMP/bin/sign_update" --help || true
+          {
+            echo "SPARKLE_FRAMEWORK_DIR=$GITHUB_WORKSPACE/vendor"
+            echo "SIGN_UPDATE=$RUNNER_TEMP/bin/sign_update"
+          } >> "$GITHUB_ENV"
 
       - name: Compiler et signer l'application
         env:
@@ -197,14 +201,22 @@ jobs:
             echo "::error::Secret SPARKLE_ED_PRIVATE_KEY_B64 manquant."
             exit 1
           fi
-          echo "$SPARKLE_ED_KEY_B64" | base64 --decode > "$RUNNER_TEMP/sparkle.pem"
-          chmod 600 "$RUNNER_TEMP/sparkle.pem"
-          SIG="$(openssl pkeyutl -sign -inkey "$RUNNER_TEMP/sparkle.pem" -rawin -in "dist/$ZIP" | base64 | tr -d '\n')"
-          LEN="$(stat -f%z "dist/$ZIP")"
+          echo "$SPARKLE_ED_KEY_B64" | base64 --decode > "$RUNNER_TEMP/sparkle.key"
+          chmod 600 "$RUNNER_TEMP/sparkle.key"
+          # sign_update est l'outil officiel de Sparkle : il produit exactement les attributs
+          # sparkle:edSignature / sparkle:length attendus par le framework.
+          ATTRS="$("$SIGN_UPDATE" --ed-key-file "$RUNNER_TEMP/sparkle.key" "dist/$ZIP")"
+          echo "$ATTRS"
+          SIG="$(printf '%s' "$ATTRS" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')"
+          LEN="$(printf '%s' "$ATTRS" | sed -n 's/.*sparkle:length="\([^"]*\)".*/\1/p')"
+          rm -f "$RUNNER_TEMP/sparkle.key"
+          if [ -z "$SIG" ] || [ -z "$LEN" ]; then
+            echo "::error::Signature Sparkle impossible (sortie inattendue de sign_update)."
+            exit 1
+          fi
           BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' dist/MacClair.app/Contents/Info.plist)"
           PUBDATE="$(LC_ALL=C date -u '+%a, %d %b %Y %H:%M:%S +0000')"
           URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}/${ZIP}"
-          rm -f "$RUNNER_TEMP/sparkle.pem"
           mkdir -p docs
           {
             echo '<?xml version="1.0" encoding="utf-8"?>'
@@ -221,7 +233,7 @@ jobs:
             echo "      <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>"
             echo '      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>'
             echo '      <description><![CDATA[Signee Developer ID et notariee par Apple. Corrections et ameliorations de l utilitaire.]]></description>'
-            echo "      <enclosure url=\"${URL}\" sparkle:version=\"${BUILD}\" sparkle:shortVersionString=\"${VERSION}\" sparkle:edSignature=\"${SIG}\" length=\"${LEN}\" type=\"application/octet-stream\"/>"
+            echo "      <enclosure url=\"${URL}\" sparkle:version=\"${BUILD}\" sparkle:shortVersionString=\"${VERSION}\" sparkle:edSignature=\"${SIG}\" sparkle:length=\"${LEN}\" type=\"application/octet-stream\"/>"
             echo '    </item>'
             echo '  </channel>'
             echo '</rss>'
