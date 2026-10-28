@@ -45,6 +45,7 @@ struct InsightReport: Sendable {
     let system: SystemSnapshot
     let security: SecuritySnapshot
     let scannedFiles: Int
+    let unreadablePaths: Int
     let limited: Bool
 }
 
@@ -57,23 +58,26 @@ struct InsightScanner: Sendable {
         self.scanRoot = (scanRoot ?? home.appendingPathComponent("Downloads", isDirectory: true)).standardizedFileURL
     }
 
-    func scan() -> InsightReport {
+    func scan(progress: (@Sendable (String, Int) -> Void)? = nil) -> InsightReport {
         let fm = FileManager.default
-        var candidates: [(url: URL, bytes: Int64, modified: Date, inode: UInt64, device: UInt64)] = []
+        var candidates: [(url: URL, bytes: Int64, modified: Date, inode: UInt64, device: UInt64, seconds: Int64, nanos: Int64)] = []
         var limited = false
+        var unreadable = 0
         var directories = [scanRoot]
+        progress?("Parcours des fichiers", 0)
         var nextDirectory = 0
         var visitedEntries = 0
         while nextDirectory < directories.count && candidates.count < 10_000 && visitedEntries < 80_000 {
             let directory = directories[nextDirectory]
             nextDirectory += 1
-            guard let urls = try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.isPackageKey]) else { continue }
+            guard let urls = try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.isPackageKey]) else { unreadable += 1; continue }
             for url in urls {
                 visitedEntries += 1
+                if visitedEntries % 200 == 0 { progress?("Parcours des fichiers", visitedEntries) }
                 if candidates.count >= 10_000 || visitedEntries >= 80_000 { limited = true; break }
                 if url.lastPathComponent.hasPrefix(".") { continue }
                 var info = stat()
-                guard url.path.withCString({ Darwin.lstat($0, &info) }) == 0 else { continue }
+                guard url.path.withCString({ Darwin.lstat($0, &info) }) == 0 else { unreadable += 1; continue }
                 let type = info.st_mode & mode_t(S_IFMT)
                 if type == mode_t(S_IFDIR) {
                     if (try? url.resourceValues(forKeys: [.isPackageKey]).isPackage) != true,
@@ -82,7 +86,7 @@ struct InsightScanner: Sendable {
                         directories.append(url)
                     }
                 } else if type == mode_t(S_IFREG), let file = fileInfo(url) {
-                    candidates.append((url, file.bytes, file.modified, file.inode, file.device))
+                    candidates.append((url, file.bytes, file.modified, file.inode, file.device, file.seconds, file.nanos))
                 }
             }
         }
@@ -93,32 +97,56 @@ struct InsightScanner: Sendable {
             .prefix(200)
             .map { LargeFile(url: $0.url, bytes: $0.bytes, modified: $0.modified) }
 
-        // Hash only equal-size files. Two hard links to one inode are one file,
-        // and a partial hash or unreadable file never becomes a duplicate result.
-        let bySize = Dictionary(grouping: candidates.filter { $0.bytes > 0 && $0.bytes <= 512_000_000 },
-                                by: { $0.bytes })
+        // Equal-size files are first compared by a bounded sample. Only matching
+        // samples are read in full; the full SHA-256 is the duplicate criterion.
+        // A short read, changed identity or unreadable file never yields a match.
+        let bySize = Dictionary(grouping: candidates, by: { $0.bytes })
         var duplicates: [DuplicateGroup] = []
+        var hashed = 0
+        progress?("Comparaison des doublons", hashed)
         for (_, sameSize) in bySize where sameSize.count > 1 {
-            var byDigest: [String: [(url: URL, inode: UInt64, device: UInt64)]] = [:]
+            var bySample: [String: [(url: URL, bytes: Int64, modified: Date, inode: UInt64, device: UInt64, seconds: Int64, nanos: Int64)]] = [:]
             for file in sameSize {
-                guard let digest = hash(file.url) else { continue }
-                guard let after = fileInfo(file.url), after.bytes == file.bytes,
-                      after.modified == file.modified, after.inode == file.inode,
-                      after.device == file.device else { continue }
-                byDigest[digest, default: []].append((file.url, file.inode, file.device))
+                let sample: String
+                if file.bytes > 128 * 1024 {
+                    guard let value = sampleHash(file.url, bytes: file.bytes),
+                          let after = fileInfo(file.url),
+                          after.bytes == file.bytes, after.inode == file.inode, after.device == file.device,
+                          after.seconds == file.seconds, after.nanos == file.nanos else { unreadable += 1; continue }
+                    sample = value
+                } else {
+                    sample = "small"
+                }
+                bySample[sample, default: []].append(file)
             }
-            for (digest, files) in byDigest {
-                var seen = Set<String>()
-                let distinct = files.filter { seen.insert("\($0.device):\($0.inode)").inserted }
-                if distinct.count > 1 {
-                    duplicates.append(DuplicateGroup(digest: digest,
-                                                     files: distinct.map(\.url).sorted { $0.path < $1.path },
-                                                     bytesPerFile: sameSize[0].bytes))
+            for sampleFiles in bySample.values where sampleFiles.count > 1 {
+                // Hard links alone do not represent independent copies.
+                let identities = Set(sampleFiles.map { "\($0.device):\($0.inode)" })
+                if identities.count < 2 { continue }
+                var byDigest: [String: [(url: URL, inode: UInt64, device: UInt64)]] = [:]
+                for file in sampleFiles {
+                    hashed += 1
+                    progress?("Comparaison des doublons", hashed)
+                    guard let digest = hash(file.url, expectedBytes: file.bytes),
+                          let after = fileInfo(file.url), after.bytes == file.bytes,
+                          after.seconds == file.seconds, after.nanos == file.nanos,
+                          after.inode == file.inode, after.device == file.device else { unreadable += 1; continue }
+                    byDigest[digest, default: []].append((file.url, file.inode, file.device))
+                }
+                for (digest, files) in byDigest {
+                    var seen = Set<String>()
+                    let distinct = files.filter { seen.insert("\($0.device):\($0.inode)").inserted }
+                    if distinct.count > 1 {
+                        duplicates.append(DuplicateGroup(digest: digest,
+                                                         files: distinct.map(\.url).sorted { $0.path < $1.path },
+                                                         bytesPerFile: sampleFiles[0].bytes))
+                    }
                 }
             }
         }
         duplicates.sort { $0.reclaimableBytes > $1.reclaimableBytes }
 
+        progress?("Inventaire des applications et protections", candidates.count)
         let appRoots = [URL(fileURLWithPath: "/Applications", isDirectory: true),
                         home.appendingPathComponent("Applications", isDirectory: true)]
         var apps: [InstalledApp] = []
@@ -148,33 +176,51 @@ struct InsightScanner: Sendable {
         )
         return InsightReport(largeFiles: large, duplicates: duplicates, apps: apps,
                              system: system, security: security,
-                             scannedFiles: candidates.count, limited: limited)
+                             scannedFiles: candidates.count, unreadablePaths: unreadable, limited: limited)
     }
 
-    private func fileInfo(_ url: URL) -> (bytes: Int64, modified: Date, inode: UInt64, device: UInt64)? {
+    private func fileInfo(_ url: URL) -> (bytes: Int64, modified: Date, inode: UInt64, device: UInt64, seconds: Int64, nanos: Int64)? {
         var data = stat()
         guard url.path.withCString({ Darwin.lstat($0, &data) }) == 0,
               (data.st_mode & mode_t(S_IFMT)) == mode_t(S_IFREG) else { return nil }
         let seconds = TimeInterval(data.st_mtimespec.tv_sec)
         let nanos = TimeInterval(data.st_mtimespec.tv_nsec) / 1_000_000_000
         return (Int64(data.st_size), Date(timeIntervalSince1970: seconds + nanos),
-                UInt64(data.st_ino), UInt64(data.st_dev))
+                UInt64(data.st_ino), UInt64(data.st_dev), Int64(data.st_mtimespec.tv_sec), Int64(data.st_mtimespec.tv_nsec))
     }
 
-    private func hash(_ url: URL) -> String? {
+    private func sampleHash(_ url: URL, bytes: Int64) -> String? {
+        do {
+            let handle = try FileHandle(forReadingFrom: url)
+            defer { try? handle.close() }
+            let sampleSize = 64 * 1024
+            guard let first = try handle.read(upToCount: sampleSize), first.count == sampleSize else { return nil }
+            try handle.seek(toOffset: UInt64(bytes - Int64(sampleSize)))
+            guard let last = try handle.read(upToCount: sampleSize), last.count == sampleSize else { return nil }
+            var hasher = SHA256()
+            hasher.update(data: first)
+            hasher.update(data: last)
+            return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+        } catch { return nil }
+    }
+
+    private func hash(_ url: URL, expectedBytes: Int64) -> String? {
         guard let stream = InputStream(url: url) else { return nil }
         stream.open()
         defer { stream.close() }
         var hasher = SHA256()
+        var total: Int64 = 0
         let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 64 * 1024)
         defer { buffer.deallocate() }
-        while stream.hasBytesAvailable {
+        while true {
             let count = stream.read(buffer, maxLength: 64 * 1024)
             if count < 0 { return nil }
             if count == 0 { break }
+            total += Int64(count)
+            guard total <= expectedBytes else { return nil }
             hasher.update(bufferPointer: UnsafeRawBufferPointer(start: buffer, count: count))
         }
-        guard stream.streamError == nil else { return nil }
+        guard stream.streamError == nil, total == expectedBytes else { return nil }
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 

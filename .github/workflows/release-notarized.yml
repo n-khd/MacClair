@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-publication
   cancel-in-progress: false
 
 jobs:
@@ -27,13 +27,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Déterminer la version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ inputs.version }}"
+            VERSION="$INPUT_VERSION"
           else
             VERSION="${GITHUB_REF_NAME#v}"
           fi
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Version invalide"; exit 1; }
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "Version : $VERSION"
 
@@ -191,6 +194,37 @@ jobs:
           ( cd dist && shasum -a 256 "$ZIP" "$DMG" > SHA256SUMS )
           cat dist/SHA256SUMS
 
+      - name: Publier la release GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="v$VERSION"
+          {
+            echo "Build compilée sur runner macOS, signée avec un certificat Developer ID et notariée par Apple."
+            echo "Aucun contournement de Gatekeeper n'est nécessaire."
+            echo ""
+            echo "### Installation"
+            echo ""
+            echo "- DMG : ouvrir \`$DMG\`, puis glisser MacClair dans Applications."
+            echo "- Homebrew : \`brew install --cask n-khd/tap/macclair\`"
+            echo "- Zip : décompresser et déplacer \`MacClair.app\` dans Applications."
+            echo ""
+            echo "### Mises à jour"
+            echo ""
+            echo "L'application vérifie elle-même les nouvelles versions (Sparkle) et propose de l'installer : menu **MacClair > Rechercher des mises à jour…**. Les signatures EdDSA du flux \`appcast.xml\` sont vérifiées avant toute installation."
+            echo ""
+            echo "Intégrité : comparer la somme d'un fichier téléchargé avec le fichier \`SHA256SUMS\` de cette release."
+          } > "$RUNNER_TEMP/notes.md"
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::error::La release $TAG existe déjà ; ses fichiers ne seront pas remplacés."
+            exit 1
+          fi
+          gh release create "$TAG" "dist/$DMG" "dist/$ZIP" "dist/SHA256SUMS" \
+            -R "$GITHUB_REPOSITORY" --title "MacClair $VERSION" --notes-file "$RUNNER_TEMP/notes.md" --generate-notes --latest
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" --pattern "$ZIP" --dir "$RUNNER_TEMP/verify"
+          cmp "dist/$ZIP" "$RUNNER_TEMP/verify/$ZIP"
+
       - name: Générer et publier l'appcast Sparkle
         env:
           SPARKLE_ED_KEY_B64: ${{ secrets.SPARKLE_ED_PRIVATE_KEY_B64 }}
@@ -247,38 +281,6 @@ jobs:
             > "$RUNNER_TEMP/appcast-payload.json"
           gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/docs/appcast.xml" \
             --input "$RUNNER_TEMP/appcast-payload.json" --jq '.commit.sha'
-
-      - name: Publier la release GitHub
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          TAG="v$VERSION"
-          {
-            echo "Build compilée sur runner macOS, signée avec un certificat Developer ID et notariée par Apple."
-            echo "Aucun contournement de Gatekeeper n'est nécessaire."
-            echo ""
-            echo "### Installation"
-            echo ""
-            echo "- DMG : ouvrir \`$DMG\`, puis glisser MacClair dans Applications."
-            echo "- Homebrew : \`brew install --cask n-khd/tap/macclair\`"
-            echo "- Zip : décompresser et déplacer \`MacClair.app\` dans Applications."
-            echo ""
-            echo "### Mises à jour"
-            echo ""
-            echo "L'application vérifie elle-même les nouvelles versions (Sparkle) et propose de l'installer : menu **MacClair > Rechercher des mises à jour…**. Les signatures EdDSA du flux \`appcast.xml\` sont vérifiées avant toute installation."
-            echo ""
-            echo "Intégrité : comparer la somme d'un fichier téléchargé avec le fichier \`SHA256SUMS\` de cette release."
-          } > "$RUNNER_TEMP/notes.md"
-          if ! gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
-              --title "MacClair $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
-          else
-            gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/notes.md"
-          fi
-          gh release upload "$TAG" "dist/$DMG" "dist/$ZIP" "dist/SHA256SUMS" \
-            -R "$GITHUB_REPOSITORY" --clobber
-          gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --latest
 
       - name: Mettre à jour le cask Homebrew
         env:

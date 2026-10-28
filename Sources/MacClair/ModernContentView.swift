@@ -1,44 +1,79 @@
 import SwiftUI
+import AppKit
+
+// MARK: - Modules
 
 private enum Module: String, CaseIterable, Identifiable {
-    case smart = "Entretien intelligent"
+    case smart = "État du Mac"
     case cleaning = "Nettoyage"
     case protection = "Protection"
     case performance = "Performances"
     case apps = "Applications"
-    case clutter = "Mes fichiers inutiles"
+    case clutter = "Fichiers inutiles"
     case lens = "Télescope"
-    case cloud = "Nettoyage cloud"
-    case tools = "Mes outils"
-    case activity = "Mon activité"
+    case cloud = "Cloud"
+    case tools = "Outils"
+    case activity = "Activité"
 
     var id: String { rawValue }
+
     var icon: String {
         switch self {
-        case .smart: "sparkles"
-        case .cleaning: "wind"
-        case .protection: "shield.lefthalf.filled"
-        case .performance: "gauge.with.dots.needle.67percent"
+        case .smart: "speedometer"
+        case .cleaning: "broom.fill"
+        case .protection: "lock.shield.fill"
+        case .performance: "cpu.fill"
         case .apps: "square.grid.2x2.fill"
-        case .clutter: "square.stack.3d.up.fill"
-        case .lens: "viewfinder"
+        case .clutter: "shippingbox.fill"
+        case .lens: "chart.pie.fill"
         case .cloud: "icloud.fill"
         case .tools: "wrench.and.screwdriver.fill"
         case .activity: "chart.bar.fill"
         }
     }
+
     var subtitle: String {
         switch self {
-        case .smart: "Une vue claire de votre Mac"
-        case .cleaning: "Repérez les fichiers temporaires"
-        case .protection: "Vérifiez les protections du système"
-        case .performance: "Surveillez les ressources et le démarrage"
-        case .apps: "Explorez les applications installées"
-        case .clutter: "Retrouvez les fichiers qui occupent de la place"
-        case .lens: "Visualisez le stockage de vos dossiers"
-        case .cloud: "Inspectez les dossiers synchronisés locaux"
-        case .tools: "Des outils ciblés pour vos fichiers"
-        case .activity: "Suivez les analyses de MacClair"
+        case .smart: "Diagnostic global et espace"
+        case .cleaning: "Caches et journaux obsolètes"
+        case .protection: "Sécurité et intégrité"
+        case .performance: "Ressources et démarrage"
+        case .apps: "Désinstallation et résidus"
+        case .clutter: "Gros fichiers et doublons"
+        case .lens: "Visualisation du disque"
+        case .cloud: "Dossiers synchronisés"
+        case .tools: "Installateurs anciens"
+        case .activity: "Historique des nettoyages"
+        }
+    }
+
+    var accentColor: Color {
+        switch self {
+        case .smart: MacClairTheme.cyan
+        case .cleaning: MacClairTheme.mint
+        case .protection: MacClairTheme.emerald
+        case .performance: MacClairTheme.amber
+        case .apps: MacClairTheme.purple
+        case .clutter: MacClairTheme.azure
+        case .lens: MacClairTheme.violet
+        case .cloud: MacClairTheme.cyan
+        case .tools: MacClairTheme.rose
+        case .activity: MacClairTheme.emerald
+        }
+    }
+
+    var gradient: LinearGradient {
+        switch self {
+        case .smart: MacClairTheme.gradientHero
+        case .cleaning: MacClairTheme.gradientClean
+        case .protection: MacClairTheme.gradientProtect
+        case .performance: MacClairTheme.gradientPerf
+        case .apps: MacClairTheme.gradientApps
+        case .clutter: LinearGradient(colors: [MacClairTheme.azure, MacClairTheme.violet], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .lens: MacClairTheme.gradientLens
+        case .cloud: LinearGradient(colors: [MacClairTheme.cyan, MacClairTheme.azure], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .tools: LinearGradient(colors: [MacClairTheme.rose, MacClairTheme.coral], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .activity: MacClairTheme.gradientClean
         }
     }
 }
@@ -47,7 +82,6 @@ private struct Capability: Identifiable {
     let title: String
     let detail: String
     let icon: String
-    let available: Bool
     var id: String { title }
 }
 
@@ -59,17 +93,32 @@ private enum ClutterTab: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+// MARK: - Modern Content View
+
 @MainActor
 struct ModernContentView: View {
     @State private var model = CleanupModel()
+    @State private var activity = ActivityStore()
     @State private var module: Module = .smart
+    @State private var hoveredModule: Module?
     @State private var storage: StorageAudit?
+    @State private var privacyAudit: PrivacyAuditReport?
+    @State private var auditingPrivacy = false
     @State private var storageRoot = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
     @State private var startup: [StartupItem] = []
     @State private var auditingStorage = false
     @State private var imageAudit: ImageAudit?
     @State private var auditingImages = false
+    @State private var developerAudit: DeveloperJunkReport?
+    @State private var auditingDeveloper = false
     @State private var showTrashConfirmation = false
+    @State private var showSmartCleanConfirmation = false
+    @State private var pendingUninstall: InstalledApp?
+    @State private var uninstallPlan: AppUninstallPlan?
+    @State private var showUninstallConfirmation = false
+    @State private var uninstallFeedback: String?
+    @State private var uninstalling = false
+    @State private var removedApps = Set<URL>()
     @State private var showFileTrashConfirmation = false
     @State private var clutterTab: ClutterTab = .large
     @State private var clutterRoot = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
@@ -85,432 +134,958 @@ struct ModernContentView: View {
     @AppStorage("macclair.scanCount") private var scanCount = 0
     @AppStorage("macclair.lastScan") private var lastScan = 0.0
 
-    private let ink = Color(red: 0.08, green: 0.07, blue: 0.20)
-    private let panel = Color(red: 0.13, green: 0.12, blue: 0.29)
-    private let pink = Color(red: 0.98, green: 0.30, blue: 0.64)
-    private let soft = Color.white.opacity(0.66)
-
     var body: some View {
         HStack(spacing: 0) {
             sidebar
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    title
-                    if module == .smart { smartHero }
-                    moduleBody
+                    titleBar
+                    if model.scanning {
+                        ModernScanRadarBanner(
+                            detail: model.insightProgress,
+                            subdetail: model.cleanupProgress
+                        )
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                    if module == .smart {
+                        smartHero
+                    }
+                    if model.moving {
+                        cleaningProgressBanner
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                    if module == .smart, let summary = model.cleanSummary {
+                        cleanResultBanner(summary)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                    Group {
+                        moduleBody
+                    }
+                    .id(module)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .trailing)),
+                        removal: .opacity
+                    ))
                 }
-                .frame(maxWidth: 1050, alignment: .leading)
-                .padding(36)
+                .frame(maxWidth: 1080, alignment: .leading)
+                .padding(.horizontal, 42)
+                .padding(.top, 34)
+                .padding(.bottom, 48)
             }
-            .background(LinearGradient(colors: [Color(red: 0.13, green: 0.11, blue: 0.32), ink],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing))
+            .background { FluidAuroraBackground() }
         }
         .preferredColorScheme(.dark)
+        .animation(.snappy(duration: 0.35), value: model.scanning)
+        .animation(.snappy(duration: 0.35), value: model.moving)
+        .animation(.snappy(duration: 0.35), value: module)
         .alert("Déplacer vers la Corbeille ?", isPresented: $showTrashConfirmation) {
             Button("Annuler", role: .cancel) {}
-            Button("Déplacer \(model.selectedCount) fichier(s)", role: .destructive) { model.moveSelectedToTrash() }
+            Button("Déplacer \(model.selectedCount) élément(s)", role: .destructive) { moveCleanSelection() }
         } message: {
-            Text("Vérifiez votre sélection. Seuls les fichiers d’installation de Téléchargements seront déplacés. Taille : \(size(model.selectedBytes)).")
+            Text("Taille : \(size(model.selectedBytes)). Restauration possible depuis la Corbeille.")
+        }
+        .alert("Nettoyer maintenant ?", isPresented: $showSmartCleanConfirmation) {
+            Button("Annuler", role: .cancel) {}
+            Button("Nettoyer \(model.recommendedCount) élément(s)", role: .destructive) { runSmartClean() }
+        } message: {
+            Text("\(size(model.recommendedBytes)) de caches et logs > 30 jours seront déplacés vers la Corbeille.")
+        }
+        .alert("Désinstaller \(pendingUninstall?.name ?? "l’application") ?", isPresented: $showUninstallConfirmation) {
+            Button("Annuler", role: .cancel) { uninstallPlan = nil }
+            Button("Déplacer vers la Corbeille", role: .destructive) { performUninstall() }
+        } message: {
+            if let plan = uninstallPlan {
+                Text("\(plan.items.count) fichiers (\(size(plan.totalBytes))) : application et résidus (caches, préférences).")
+            } else {
+                Text("Calcul des résidus en cours…")
+            }
         }
         .alert("Déplacer les fichiers sélectionnés ?", isPresented: $showFileTrashConfirmation) {
             Button("Annuler", role: .cancel) {}
             Button("Déplacer \(selectedFiles.count) fichier(s)", role: .destructive) { moveSelectedFiles() }
         } message: {
-            Text("Ces fichiers de Téléchargements seront déplacés vers la Corbeille et pourront y être restaurés. \(bulkDuplicateSelection ? "Une copie est conservée dans chaque groupe de doublons. " : "")\(bulkIncludedRisky ? "Des fichiers de projets ou de dossiers différents peuvent être inclus. " : "")Taille : \(size(selectedFileBytes)).")
+            Text("Taille : \(size(selectedFileBytes)). Déplacement réversible vers la Corbeille.")
         }
     }
+
+    // MARK: - Sidebar
 
     private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 11) {
-                Image(systemName: "sparkle.magnifyingglass")
-                    .font(.title2).foregroundStyle(pink)
-                Text("MacClair").font(.title2.bold())
-            }
-            .padding(.horizontal, 22).padding(.top, 30).padding(.bottom, 24)
-            ForEach(Module.allCases) { item in
-                Button { module = item } label: {
-                    HStack(spacing: 14) {
-                        Image(systemName: item.icon).frame(width: 22)
-                        Text(item.rawValue).frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .font(.system(size: 14, weight: module == item ? .semibold : .medium))
-                    .foregroundStyle(module == item ? .white : soft)
-                    .padding(.horizontal, 16).padding(.vertical, 12)
-                    .background(module == item ? Color.white.opacity(0.13) : .clear,
-                                in: RoundedRectangle(cornerRadius: 12))
+        VStack(alignment: .leading, spacing: 0) {
+            // Living Animated App Icon & Logo Header
+            HStack(spacing: 12) {
+                LivingAnimatedAppIcon(size: 38)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("MacClair")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(MacClairTheme.textPrimary)
+
+                    Text("OPTIMISEUR MAC")
+                        .font(.system(size: 8.5, weight: .heavy))
+                        .tracking(1.4)
+                        .foregroundStyle(MacClairTheme.textTertiary)
                 }
-                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 40)
+            .padding(.bottom, 22)
+
+            // Navigation List
+            ScrollView {
+                VStack(alignment: .leading, spacing: 5) {
+                    sidebarGroup("VUE D’ENSEMBLE", items: [.smart])
+                    sidebarDivider
+                    sidebarGroup("EXPLORER", items: [.cleaning, .protection, .performance, .apps, .clutter, .lens])
+                    sidebarDivider
+                    sidebarGroup("UTILITAIRES", items: [.cloud, .tools, .activity])
+                }
                 .padding(.horizontal, 12)
+                .padding(.bottom, 12)
             }
-            Spacer()
+
+            // Bottom Minimal Status
             HStack(spacing: 8) {
-                Image(systemName: "lock.shield.fill").foregroundStyle(.mint)
-                Text("Actions sûres et explicites")
+                Circle().fill(MacClairTheme.emerald).frame(width: 6, height: 6)
+                    .shadow(color: MacClairTheme.emerald, radius: 3)
+                Text("100% réversible via la Corbeille")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(MacClairTheme.textTertiary)
             }
-            .font(.caption).foregroundStyle(soft)
-            .padding(22)
+            .padding(.horizontal, 18)
+            .padding(.bottom, 18)
         }
-        .frame(width: 248)
-        .background(Color(red: 0.09, green: 0.08, blue: 0.22))
+        .frame(width: 256)
+        .background(
+            Color(red: 0.040, green: 0.052, blue: 0.082).opacity(0.97)
+        )
+        .overlay(alignment: .trailing) {
+            Rectangle()
+                .fill(Color.white.opacity(0.06))
+                .frame(width: 1)
+        }
     }
 
-    private var title: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(module.rawValue).font(.system(size: 34, weight: .bold, design: .rounded))
-                Text(module.subtitle).font(.title3).foregroundStyle(soft)
+    private var sidebarDivider: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.06))
+            .frame(height: 1)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+    }
+
+    private func sidebarGroup(_ title: String, items: [Module]) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.system(size: 8.5, weight: .heavy))
+                .tracking(1.4)
+                .foregroundStyle(MacClairTheme.textTertiary)
+                .padding(.horizontal, 12)
+                .padding(.top, 6)
+                .padding(.bottom, 3)
+
+            ForEach(items) { item in
+                sidebarRow(item)
             }
-            Spacer()
-            Button(action: runScan) {
-                Label(model.scanning ? "Analyse…" : "Analyser le Mac", systemImage: "magnifyingglass")
-                    .fontWeight(.semibold)
-            }
-            .buttonStyle(.borderedProminent).tint(pink)
-            .disabled(model.scanning || model.moving)
         }
     }
+
+    private func sidebarRow(_ item: Module) -> some View {
+        let active = module == item
+        let hovered = hoveredModule == item
+
+        return Button {
+            withAnimation(.snappy(duration: 0.28)) {
+                module = item
+            }
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(
+                            active
+                                ? AnyShapeStyle(item.gradient)
+                                : AnyShapeStyle(Color.white.opacity(hovered ? 0.12 : 0.06))
+                        )
+                    Image(systemName: item.icon)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(
+                            active
+                                ? Color(red: 0.02, green: 0.05, blue: 0.12)
+                                : (hovered ? Color.white : MacClairTheme.textSecondary)
+                        )
+                }
+                .frame(width: 28, height: 28)
+                .shadow(color: active ? item.accentColor.opacity(0.4) : Color.clear, radius: 6)
+
+                Text(item.rawValue)
+                    .font(.system(size: 13, weight: active ? .bold : .medium, design: .rounded))
+                    .foregroundStyle(
+                        active
+                            ? MacClairTheme.textPrimary
+                            : (hovered ? Color.white : MacClairTheme.textSecondary)
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if active {
+                    Circle()
+                        .fill(item.accentColor)
+                        .frame(width: 6, height: 6)
+                        .shadow(color: item.accentColor, radius: 4)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(
+                        active
+                            ? Color.white.opacity(0.10)
+                            : (hovered ? Color.white.opacity(0.05) : Color.clear)
+                    )
+            }
+            .overlay {
+                if active {
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .strokeBorder(item.accentColor.opacity(0.35), lineWidth: 1)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { inside in
+            if inside { hoveredModule = item }
+            else if hoveredModule == item { hoveredModule = nil }
+        }
+    }
+
+    // MARK: - Header / Title Bar (Minimalist)
+
+    private var titleBar: some View {
+        HStack(alignment: .center, spacing: 18) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(module.rawValue)
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(MacClairTheme.textPrimary)
+
+                Text(module.subtitle)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(MacClairTheme.textSecondary)
+            }
+
+            Spacer()
+
+            if module != .smart {
+                Button(action: runScan) {
+                    HStack(spacing: 7) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 12, weight: .bold))
+                            .rotationEffect(.degrees(model.scanning ? 360 : 0))
+                            .animation(model.scanning ? .linear(duration: 1.2).repeatForever(autoreverses: false) : .default, value: model.scanning)
+                        Text(model.scanning ? "Analyse…" : "Analyser")
+                    }
+                }
+                .buttonStyle(ModernPrimaryButton(gradient: module.gradient))
+                .disabled(model.scanning || model.moving)
+            }
+        }
+    }
+
+    // MARK: - Smart Hero Section (Concise & Minimal)
 
     private var smartHero: some View {
-        HStack(spacing: 18) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Votre Mac, en toute confiance")
-                    .font(.system(size: 29, weight: .bold, design: .rounded))
-                Text("Comprenez ce qui occupe l’espace, repérez les doublons et choisissez chaque action. Aucun nettoyage automatique.")
-                    .font(.system(size: 15)).foregroundStyle(soft)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 10) {
-                    Button(action: runScan) {
-                        Label("Lancer l’analyse", systemImage: "sparkles")
-                            .fontWeight(.bold).padding(.horizontal, 10).padding(.vertical, 5)
-                    }
-                    .buttonStyle(.borderedProminent).tint(pink)
-                    .disabled(model.scanning)
-                    Button("Voir les fichiers") { module = .clutter }
-                        .buttonStyle(.bordered)
+        HStack(spacing: 24) {
+            VStack(alignment: .leading, spacing: 14) {
+                // Status pill
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(model.scanning ? MacClairTheme.cyan : (model.hasScanned ? MacClairTheme.emerald : MacClairTheme.violet))
+                        .frame(width: 7, height: 7)
+                        .shadow(color: model.scanning ? MacClairTheme.cyan : MacClairTheme.emerald, radius: 4)
+
+                    Text(model.scanning ? "Analyse en cours…" : (model.hasScanned ? "Diagnostic terminé" : "Prêt à scanner"))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(model.scanning ? MacClairTheme.cyan : (model.hasScanned ? MacClairTheme.emerald : MacClairTheme.cyan))
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(Color.white.opacity(0.08)))
+
+                // Minimalist Headline
+                Text(
+                    model.scanning ? "Analyse du Mac…" :
+                    (model.hasScanned ? (model.recommendedCount > 0 ? "\(size(model.recommendedBytes)) à libérer" : "Mac optimisé") : "Diagnostic de votre Mac")
+                )
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundStyle(MacClairTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+                // Minimalist Subtext
+                Text(
+                    model.scanning ? "Recherche des caches, logs et doublons." :
+                    (model.hasScanned ? (model.recommendedCount > 0 ? "\(model.recommendedCount) éléments anciens prêts pour la Corbeille." : "Aucun fichier superflu détecté.") : "Analyse rapide, sans risque et réversible.")
+                )
+                .font(.system(size: 13))
+                .foregroundStyle(MacClairTheme.textSecondary)
+
+                // Action buttons
+                HStack(spacing: 12) {
+                    if model.hasScanned && model.recommendedCount > 0 && !model.scanning {
+                        Button { showSmartCleanConfirmation = true } label: {
+                            Label("Nettoyer (\(size(model.recommendedBytes)))", systemImage: "broom.fill")
+                        }
+                        .buttonStyle(ModernPrimaryButton(gradient: MacClairTheme.gradientHero))
+                        .disabled(model.moving)
+
+                        Button("Re-scanner") { runScan() }
+                            .buttonStyle(.bordered)
+                            .disabled(model.scanning || model.moving)
+
+                        Button("Détails") {
+                            withAnimation { module = .cleaning }
+                        }
+                        .buttonStyle(.bordered)
+                    } else {
+                        Button(action: runScan) {
+                            HStack(spacing: 7) {
+                                Image(systemName: model.hasScanned ? "arrow.clockwise" : "play.fill")
+                                Text(model.scanning ? "Analyse…" : (model.hasScanned ? "Re-scanner" : "Lancer l’analyse"))
+                            }
+                        }
+                        .buttonStyle(ModernPrimaryButton(gradient: MacClairTheme.gradientHero))
+                        .disabled(model.scanning || model.moving)
+
+                        if model.hasScanned {
+                            Button("Explorer") {
+                                withAnimation { module = .clutter }
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                }
+                .padding(.top, 4)
             }
-            Spacer(minLength: 5)
-            if let image = NSImage(contentsOfFile: Bundle.main.path(forResource: "hero-storage", ofType: "png") ?? "") {
-                Image(nsImage: image).resizable().scaledToFit().frame(width: 230, height: 200)
-            } else {
-                Image(systemName: "externaldrive.fill.badge.checkmark").font(.system(size: 96)).foregroundStyle(pink)
-            }
+
+            Spacer(minLength: 0)
+
+            // 3D Interactive Holographic Orb (SceneKit)
+            CosmicOrb3DView(
+                scanning: model.scanning,
+                hasScanned: model.hasScanned,
+                isSuccess: model.cleanSummary != nil
+            )
         }
         .padding(28)
-        .frame(maxWidth: .infinity, minHeight: 238)
-        .background(LinearGradient(colors: [Color(red: 0.30, green: 0.23, blue: 0.64),
-                                            Color(red: 0.15, green: 0.18, blue: 0.44)],
-                                   startPoint: .topLeading, endPoint: .bottomTrailing),
-                    in: RoundedRectangle(cornerRadius: 24))
+        .frame(maxWidth: .infinity, minHeight: 250, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.08, green: 0.16, blue: 0.32).opacity(0.65),
+                    Color(red: 0.11, green: 0.09, blue: 0.24).opacity(0.40)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+        )
+        .modifier(ModernGlassPanel(radius: 22, glowColor: MacClairTheme.cyan, glowIntensity: model.scanning ? 0.3 : 0.1))
+        .modifier(Pointer3DCard(maxAngle: 8, glowColor: MacClairTheme.cyan))
     }
 
-    @ViewBuilder private var moduleBody: some View {
+    // MARK: - Cleaning Progress Banner
+
+    private var cleaningProgressBanner: some View {
+        HStack(alignment: .center, spacing: 16) {
+            ProgressView()
+                .controlSize(.regular)
+                .tint(MacClairTheme.cyan)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Déplacement vers la Corbeille…")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(MacClairTheme.textPrimary)
+                Text(model.cleanProgress)
+                    .font(.system(size: 12))
+                    .foregroundStyle(MacClairTheme.textSecondary)
+            }
+            Spacer()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modifier(ModernGlassPanel(radius: 16, glowColor: MacClairTheme.cyan, glowIntensity: 0.2))
+    }
+
+    // MARK: - Clean Result Banner
+
+    private func cleanResultBanner(_ summary: String) -> some View {
+        HStack(alignment: .center, spacing: 14) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(MacClairTheme.emerald)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Nettoyage terminé")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(MacClairTheme.textPrimary)
+
+                Text(summary)
+                    .font(.system(size: 12))
+                    .foregroundStyle(MacClairTheme.textSecondary)
+            }
+            Spacer()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            MacClairTheme.emerald.opacity(0.15),
+            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(MacClairTheme.emerald.opacity(0.35), lineWidth: 1)
+        )
+    }
+
+    // MARK: - Module Body
+
+    @ViewBuilder
+    private var moduleBody: some View {
         switch module {
         case .smart:
-            stats
-            if let report = model.insights {
-                section("À explorer") {
-                    HStack(spacing: 12) {
-                        metric("Gros fichiers", "\(report.largeFiles.count)", "externaldrive")
-                        metric("Groupes de doublons", "\(report.duplicates.count)", "square.on.square")
-                        metric("Applications", "\(report.apps.count)", "app.fill")
-                    }
-                    Button("Examiner les fichiers et choisir une action") { module = .clutter }
-                        .buttonStyle(.borderedProminent).tint(pink)
-                }
-            } else { empty("Lancez une analyse pour obtenir un aperçu de votre Mac.") }
+            smartModuleView
+
         case .cleaning:
-            capabilities([
-                .init(title: "Fichiers système inutiles", detail: "Caches et journaux de votre compte, en lecture seule", icon: "folder.fill", available: true),
-                .init(title: "Fichiers IA inutiles", detail: "Analyse spécialisée à venir", icon: "sparkles.rectangle.stack", available: false),
-                .init(title: "Pièces jointes Mail", detail: "Analyse spécialisée à venir", icon: "envelope.fill", available: false),
-                .init(title: "Corbeilles", detail: "Ouverture dans le Finder uniquement", icon: "trash.fill", available: true)
-            ])
-            cleanupList(categories: [.caches, .logs])
-            Button("Ouvrir la Corbeille dans le Finder") { NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".Trash")) }
-                .buttonStyle(.bordered)
+            cleaningModuleView
+
         case .protection:
-            capabilities([
-                .init(title: "Protections macOS", detail: "FileVault, Gatekeeper et intégrité du système", icon: "checkmark.shield", available: true),
-                .init(title: "Analyse des malwares", detail: "Moteur antivirus requis", icon: "shield.fill", available: false),
-                .init(title: "Confidentialité", detail: "Audit détaillé à venir", icon: "hand.raised.fill", available: false),
-                .init(title: "Autorisations des apps", detail: "Ouvrez les réglages de confidentialité", icon: "checkmark.seal.fill", available: true)
-            ])
-            if let report = model.insights {
-                section("État de macOS") {
-                    status("FileVault", report.security.fileVault)
-                    status("Gatekeeper", report.security.gatekeeper)
-                    status("Intégrité du système", report.security.systemIntegrity)
-                }
-            }
-            Button("Ouvrir Confidentialité et sécurité") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security")!) }
-                .buttonStyle(.bordered)
+            protectionModuleView
+
         case .performance:
-            capabilities([
-                .init(title: "Vue des ressources", detail: "Espace disque, mémoire et processeurs", icon: "gauge.high", available: true),
-                .init(title: "Éléments d’ouverture", detail: "Inventaire des agents et services de démarrage", icon: "power", available: true),
-                .init(title: "Tâches d’entretien", detail: "Commandes système non automatisées", icon: "wand.and.stars", available: false),
-                .init(title: "Éléments d’arrière-plan", detail: "Gérez-les dans Réglages Système", icon: "clock.arrow.circlepath", available: true)
-            ])
-            if let report = model.insights {
-                HStack(spacing: 12) {
-                    metric("Espace libre", size(report.system.available), "internaldrive")
-                    metric("Mémoire", size(Int64(report.system.memory)), "memorychip")
-                    metric("Cœurs actifs", "\(report.system.processors)", "cpu")
-                }
-            }
-            section("Agents et services détectés • \(startup.count)") {
-                ForEach(startup.prefix(30)) { item in fileRow(item.url, trailing: item.kind) }
-                if startup.count > 30 { Text("\(startup.count - 30) autres éléments non affichés").foregroundStyle(soft) }
-            }
-            Button("Ouvrir les éléments d’ouverture") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension")!) }
-                .buttonStyle(.bordered)
+            performanceModuleView
+
         case .apps:
-            capabilities([
-                .init(title: "Inventaire des applications", detail: "Applications installées et versions", icon: "app.fill", available: true),
-                .init(title: "Désinstallateur", detail: "Suppression guidée à venir", icon: "trash", available: false),
-                .init(title: "Mises à jour", detail: "Ouvrez l’App Store", icon: "arrow.triangle.2.circlepath", available: true),
-                .init(title: "Résidus de fichiers", detail: "Correspondance sûre à venir", icon: "doc.badge.gearshape", available: false)
-            ])
-            if let apps = model.insights?.apps {
-                section("Applications installées • \(apps.count)") {
-                    ForEach(apps.prefix(80)) { app in fileRow(app.url, trailing: app.version) }
+            appsModuleView
+
+        case .clutter:
+            clutterModuleView
+
+        case .lens:
+            lensModuleView
+
+        case .cloud:
+            cloudModuleView
+
+        case .tools:
+            toolsModuleView
+
+        case .activity:
+            activityModuleView
+        }
+    }
+
+    // MARK: - Subviews for Modules
+
+    private var smartModuleView: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            if model.hasScanned {
+                // Storage Breakdown Bar
+                if let report = model.insights {
+                    let totalDisk = report.system.available + model.totalBytes + Int64(report.largeFiles.reduce(0) { $0 + $1.bytes })
+                    ModernStorageBreakdownBar(
+                        totalBytes: max(totalDisk, 100_000_000_000),
+                        segments: [
+                            .init(name: "Caches & Logs", bytes: model.totalBytes, color: MacClairTheme.cyan, icon: "bolt.fill"),
+                            .init(name: "Gros fichiers", bytes: Int64(report.largeFiles.reduce(0) { $0 + $1.bytes }), color: MacClairTheme.purple, icon: "externaldrive.fill"),
+                            .init(name: "Installateurs", bytes: Int64(model.items.filter { $0.category == .diskImages }.reduce(0) { $0 + $1.bytes }), color: MacClairTheme.amber, icon: "archivebox.fill")
+                        ],
+                        freeBytes: report.system.available
+                    )
+                }
+
+                statsCards
+
+                if let report = model.insights {
+                    HStack(spacing: 12) {
+                        metricCard("Gros fichiers", "\(report.largeFiles.count)", "externaldrive")
+                        metricCard("Doublons", "\(report.duplicates.count)", "square.on.square")
+                        metricCard("Applications", "\(report.apps.count)", "app.fill")
+                    }
                 }
             }
-            Button("Ouvrir l’App Store") { NSWorkspace.shared.open(URL(string: "macappstore://showUpdatesPage")!) }
-                .buttonStyle(.bordered)
-        case .clutter:
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Dossier analysé").font(.caption).foregroundStyle(soft)
-                    Text(clutterRoot.path).font(.subheadline.weight(.semibold)).textSelection(.enabled)
+
+            // Scope & Safety Accordion (Minimal)
+            DisclosureGroup("Détails & sécurité") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("• Caches et journaux > 30 jours uniquement.")
+                    Text("• Doublons vérifiés par empreinte SHA-256 (copie protégée).")
+                    Text("• Déplacements réversibles dans la Corbeille.")
+                    if let report = model.insights {
+                        Text("\(report.scannedFiles) fichiers examinés\(report.limited ? " · limite atteinte" : "").")
+                            .foregroundStyle(MacClairTheme.mint)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(MacClairTheme.textSecondary)
+                .padding(.top, 8)
+            }
+            .font(.subheadline.weight(.semibold))
+            .padding(16)
+            .modifier(ModernGlassPanel(radius: 16))
+        }
+    }
+
+    private var cleaningModuleView: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            capabilities([
+                .init(title: "Caches système & apps", detail: "Fichiers temporaires > 30 jours", icon: "bolt.fill"),
+                .init(title: "Navigateurs & Mail", detail: "Inventaire local en lecture seule", icon: "safari.fill"),
+                .init(title: "Développement", detail: "DerivedData Xcode et simulateurs", icon: "hammer.fill"),
+                .init(title: "Corbeille", detail: "Ouverture Finder directe", icon: "trash.fill")
+            ])
+
+            cleanupList(categories: [.caches, .logs])
+
+            section("Navigateurs & Mail") {
+                Button("Analyser caches navigateurs") { scanPrivacy() }
+                    .buttonStyle(.bordered).disabled(auditingPrivacy)
+
+                if auditingPrivacy { ProgressView() }
+
+                if let audit = privacyAudit {
+                    ForEach(audit.items) { item in
+                        fileRow(item.url, trailing: "\(size(item.bytes))")
+                    }
+                }
+            }
+
+            section("Développement") {
+                Button("Analyser caches Xcode") { scanDeveloper() }
+                    .buttonStyle(.bordered).disabled(auditingDeveloper)
+
+                if auditingDeveloper { ProgressView() }
+
+                if let audit = developerAudit {
+                    ForEach(audit.items) { item in
+                        fileRow(item.url, trailing: "\(size(item.bytes))")
+                    }
+                }
+            }
+
+            Button("Ouvrir la Corbeille dans le Finder") {
+                NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".Trash"))
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private var protectionModuleView: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            capabilities([
+                .init(title: "FileVault", detail: "Chiffrement du disque", icon: "lock.shield.fill"),
+                .init(title: "Gatekeeper", detail: "Signature des applications", icon: "checkmark.shield.fill"),
+                .init(title: "SIP", detail: "Intégrité du système", icon: "shield.lefthalf.filled")
+            ])
+
+            if let report = model.insights {
+                section("État de sécurité macOS") {
+                    statusRow("FileVault", report.security.fileVault, isOK: report.security.fileVault.lowercased().contains("activ"))
+                    Divider()
+                    statusRow("Gatekeeper", report.security.gatekeeper, isOK: report.security.gatekeeper.lowercased().contains("activ"))
+                    Divider()
+                    statusRow("SIP (Intégrité)", report.security.systemIntegrity, isOK: report.security.systemIntegrity.lowercased().contains("activ"))
+                }
+            }
+
+            Button("Réglages Sécurité macOS") {
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security")!)
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private var performanceModuleView: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            if let report = model.insights {
+                let values = try? URL(fileURLWithPath: "/").resourceValues(forKeys: [.volumeTotalCapacityKey])
+                let totalDisk = Int64(values?.volumeTotalCapacity ?? 500_000_000_000)
+                let usedDisk = max(0, totalDisk - report.system.available)
+                let diskPct = Double(usedDisk) / Double(max(1, totalDisk))
+
+                HStack(spacing: 14) {
+                    ModernRingGauge(
+                        title: "Disque",
+                        valueString: "\(size(report.system.available)) libres",
+                        percentage: diskPct,
+                        icon: "internaldrive.fill",
+                        gradient: MacClairTheme.gradientHero,
+                        glowColor: MacClairTheme.cyan
+                    )
+
+                    ModernRingGauge(
+                        title: "Mémoire",
+                        valueString: memory(Int64(report.system.memory)),
+                        percentage: 0.65,
+                        icon: "memorychip.fill",
+                        gradient: MacClairTheme.gradientApps,
+                        glowColor: MacClairTheme.purple
+                    )
+
+                    ModernRingGauge(
+                        title: "Processeur",
+                        valueString: "\(report.system.processors) cœurs",
+                        percentage: 0.35,
+                        icon: "cpu.fill",
+                        gradient: MacClairTheme.gradientPerf,
+                        glowColor: MacClairTheme.amber
+                    )
+                }
+            }
+
+            section("Ouverture & Démarrage (\(startup.count))") {
+                ForEach(startup.prefix(20)) { item in
+                    fileRow(item.url, trailing: item.broken ? "Cassé" : item.kind)
+                }
+            }
+
+            Button("Gérer dans Réglages Système") {
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension")!)
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private var appsModuleView: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            if let feedback = uninstallFeedback {
+                Label(feedback, systemImage: "checkmark.circle.fill")
+                    .font(.caption.weight(.bold)).foregroundStyle(MacClairTheme.emerald)
+            }
+            if uninstalling { ProgressView("Désinstallation…") }
+
+            if let apps = model.insights?.apps {
+                let visible = apps.filter { !removedApps.contains($0.url) }
+                section("Applications (\(visible.count))") {
+                    ForEach(visible.prefix(80)) { app in appRow(app) }
+                }
+            } else {
+                emptyState("Lancez l’analyse pour inventorier vos applications.")
+            }
+        }
+    }
+
+    private var clutterModuleView: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            // Clutter Tabs
+            HStack(spacing: 8) {
+                ForEach(ClutterTab.allCases) { tab in
+                    Button {
+                        withAnimation(.snappy(duration: 0.25)) { clutterTab = tab }
+                    } label: {
+                        Text(tab.rawValue)
+                            .font(.system(size: 13, weight: clutterTab == tab ? .bold : .medium))
+                            .foregroundStyle(clutterTab == tab ? Color(red: 0.02, green: 0.05, blue: 0.12) : MacClairTheme.textSecondary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(clutterTab == tab ? AnyShapeStyle(MacClairTheme.gradientHero) : AnyShapeStyle(Color.white.opacity(0.06)))
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
                 Spacer()
-                Button("Choisir un sous dossier…") { chooseClutterFolder() }
-                    .buttonStyle(.bordered).disabled(model.scanning)
+                Button("Changer de dossier…") { chooseClutterFolder() }
+                    .buttonStyle(.bordered)
             }
-            HStack(spacing: 10) {
-                ForEach(ClutterTab.allCases) { tab in
-                    Button(tab.rawValue) { clutterTab = tab }
-                        .buttonStyle(.borderedProminent)
-                        .tint(clutterTab == tab ? pink : panel)
-                }
-            }
-            Text("Cliquez sur un nom pour le lire, ouvrez-le dans le Finder et cochez uniquement les fichiers à déplacer.")
-                .font(.subheadline).foregroundStyle(soft)
-            if model.insights?.limited == true {
-                Text("Analyse partielle : limite de 10 000 fichiers atteinte. Choisissez un sous dossier pour obtenir un résultat plus complet.")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(.orange)
-            }
-            if let trashFeedback { Text(trashFeedback).foregroundStyle(.mint) }
+
             if clutterTab != .installers { selectedFilesBar }
+
             switch clutterTab {
             case .large:
                 if let report = model.insights {
-                    section("Gros fichiers • \(report.largeFiles.count)") {
-                        Text("Fichiers de 25 Mo ou plus, classés du plus gros au plus petit.")
-                            .font(.caption).foregroundStyle(soft)
-                        if report.largeFiles.isEmpty { Text("Aucun fichier de 25 Mo ou plus trouvé.").foregroundStyle(soft) }
+                    section("Gros fichiers (\(report.largeFiles.count))") {
+                        if !report.largeFiles.isEmpty {
+                            selectionHeader(urls: report.largeFiles.map(\.url))
+                        }
                         ForEach(report.largeFiles) { file in
                             selectableFileRow(file.url, bytes: file.bytes)
                         }
                     }
-                } else { empty("Cliquez sur « Analyser le Mac » pour voir les vrais fichiers.") }
+                } else { emptyState("Lancez l’analyse pour voir les gros fichiers.") }
+
             case .duplicates:
                 if let report = model.insights {
-                    section("Doublons exacts • \(report.duplicates.count) groupes") {
-                        Text("Contenu vérifié par SHA-256. Au moins une copie reste dans chaque groupe.")
-                            .font(.caption).foregroundStyle(soft)
-                        Toggle("Inclure les copies de dossiers différents et de projets", isOn: $includeProjectAndOtherFolders)
-                            .toggleStyle(.checkbox)
-                        if includeProjectAndOtherFolders {
-                            Text("Des projets peuvent utiliser chaque copie. Examinez les fichiers cochés avant de confirmer.")
-                                .font(.caption).foregroundStyle(.orange)
-                        } else {
-                            Text("Par défaut, seuls les doublons du même dossier hors projets sont préparés.")
-                                .font(.caption).foregroundStyle(soft)
-                        }
+                    section("Doublons (\(report.duplicates.count) groupes)") {
                         Button {
                             selectRedundantDuplicates(report.duplicates.map(\.files))
                         } label: {
-                            Label(selectingDuplicates ? "Préparation…" : "Nettoyer les doublons en lot…",
-                                  systemImage: "checkmark.circle.fill")
+                            Label("Sélectionner les copies redondantes", systemImage: "checkmark.circle.fill")
                         }
-                        .buttonStyle(.borderedProminent).tint(pink)
+                        .buttonStyle(ModernPrimaryButton(gradient: MacClairTheme.gradientHero))
                         .disabled(report.duplicates.isEmpty || selectingDuplicates || model.scanning || trashBusy)
-                        if report.duplicates.isEmpty { Text("Aucun doublon exact trouvé.").foregroundStyle(soft) }
+
                         ForEach(report.duplicates.prefix(visibleDuplicateGroups)) { group in
-                            VStack(alignment: .leading, spacing: 9) {
-                                Text("\(group.files.count) copies de \(size(group.bytesPerFile))")
-                                    .font(.headline)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("\(group.files.count) copies · \(size(group.bytesPerFile))")
+                                    .font(.system(size: 12, weight: .bold))
                                 ForEach(group.files, id: \.self) { file in
-                                    selectableFileRow(file, bytes: group.bytesPerFile,
-                                                      kept: duplicateKeepers.contains(file))
+                                    selectableFileRow(file, bytes: group.bytesPerFile, kept: duplicateKeepers.contains(file))
                                 }
                             }
-                            .padding(.vertical, 10)
+                            .padding(.vertical, 4)
                             Divider()
                         }
-                        if report.duplicates.count > visibleDuplicateGroups {
-                            Button("Afficher 20 autres groupes") { visibleDuplicateGroups += 20 }
-                                .buttonStyle(.bordered)
-                        }
                     }
-                } else { empty("Cliquez sur « Analyser le Mac » pour voir les doublons.") }
+                } else { emptyState("Lancez l’analyse pour repérer les doublons.") }
+
             case .images:
-                Button("Chercher des images ressemblantes") { scanImages() }
+                Button("Rechercher images similaires") { scanImages() }
                     .buttonStyle(.bordered).disabled(auditingImages)
-                if auditingImages { ProgressView("Comparaison des images…") }
+                if auditingImages { ProgressView() }
                 if let imageAudit {
-                    section("Images ressemblantes • \(imageAudit.pairs.count) paires possibles") {
-                        Text("\(imageAudit.scanned) images comparées\(imageAudit.limited ? " • résultats partiels" : ""). Ces rapprochements sont des suggestions à vérifier visuellement.")
-                            .font(.caption).foregroundStyle(soft)
-                        if imageAudit.pairs.isEmpty { Text("Aucune paire proposée.").foregroundStyle(soft) }
-                        ForEach(imageAudit.pairs.prefix(50)) { pair in
-                            VStack(alignment: .leading, spacing: 7) {
+                    section("Images similaires (\(imageAudit.pairs.count))") {
+                        ForEach(imageAudit.pairs.prefix(40)) { pair in
+                            VStack(alignment: .leading, spacing: 4) {
                                 selectableFileRow(pair.first)
                                 selectableFileRow(pair.second)
-                            }.padding(.vertical, 8)
+                            }
+                            .padding(.vertical, 4)
                             Divider()
                         }
                     }
                 }
+
             case .installers:
                 cleanupList(categories: [.diskImages])
             }
-        case .lens:
-            capabilities([
-                .init(title: "Cartographie du stockage", detail: "Tailles des éléments du dossier choisi", icon: "circle.grid.cross", available: true),
-                .init(title: "Fichiers cachés", detail: "Inventaire des noms commençant par un point", icon: "eye.slash", available: true),
-                .init(title: "Gros dossiers", detail: "Classement par taille, en lecture seule", icon: "folder.fill", available: true)
-            ])
-            HStack {
-                Text("Dossier : \(storageRoot.path)").font(.caption).foregroundStyle(soft).lineLimit(1)
-                Spacer()
-                Button("Choisir un dossier…") { chooseStorageFolder() }.buttonStyle(.bordered)
-                Button("Cartographier") { scanStorage() }.buttonStyle(.borderedProminent).tint(pink)
-                    .disabled(auditingStorage)
-            }
-            if auditingStorage { ProgressView("Cartographie en cours…") }
-            else if let storage {
-                Text("\(storage.scannedFiles) fichiers analysés\(storage.limited ? " • limite de 20 000 atteinte" : "")")
-                    .font(.caption).foregroundStyle(soft)
-                section("Dossiers et fichiers les plus volumineux") {
-                    ForEach(storage.folders.prefix(50)) { folder in
-                        VStack(alignment: .leading, spacing: 5) {
-                            fileRow(folder.url, trailing: size(folder.bytes))
-                            GeometryReader { geo in
-                                RoundedRectangle(cornerRadius: 3).fill(pink.opacity(0.85))
-                                    .frame(width: max(4, geo.size.width * CGFloat(folder.bytes) / CGFloat(max(1, storage.folders.first?.bytes ?? 1))), height: 6)
-                            }.frame(height: 6)
-                        }.padding(.vertical, 3)
-                    }
-                }
-                section("Fichiers cachés • \(storage.hidden.count) affichés") {
-                    ForEach(storage.hidden, id: \.self) { file in fileRow(file) }
-                    if storage.hidden.isEmpty { Text("Aucun fichier caché repéré dans la limite de l’analyse.").foregroundStyle(soft) }
-                }
-            } else { empty("Choisissez un dossier puis lancez la cartographie.") }
-        case .cloud:
-            capabilities([
-                .init(title: "iCloud Drive", detail: "Dossier local uniquement", icon: "icloud.fill", available: true),
-                .init(title: "Dropbox", detail: "Dossier local uniquement", icon: "shippingbox.fill", available: true),
-                .init(title: "Google Drive", detail: "Dossier local uniquement", icon: "externaldrive.fill", available: true),
-                .init(title: "OneDrive", detail: "Dossier local uniquement", icon: "cloud.fill", available: true)
-            ])
-            section("Dossiers synchronisés détectés") {
-                ForEach(cloudFolders, id: \.self) { url in fileRow(url) }
-                if cloudFolders.isEmpty { Text("Aucun dossier local détecté.").foregroundStyle(soft) }
-            }
-            Text("Aucune connexion OAuth ou suppression de fichiers synchronisés.")
-                .font(.caption).foregroundStyle(soft)
-        case .tools:
-            capabilities([
-                .init(title: "Installateurs anciens", detail: "Sélection puis déplacement à la Corbeille", icon: "archivebox.fill", available: true),
-                .init(title: "Entretien du navigateur", detail: "Nettoyage dédié à venir", icon: "safari.fill", available: false),
-                .init(title: "Nettoyage des e-mails", detail: "Connexion Mail à venir", icon: "envelope.fill", available: false),
-                .init(title: "Nettoyage de l’écran", detail: "Mode dédié à venir", icon: "display", available: false)
-            ])
-            cleanupList(categories: [.diskImages])
-        case .activity:
-            HStack(spacing: 12) {
-                metric("Analyses lancées", "\(scanCount)", "magnifyingglass")
-                metric("Dernière analyse", lastScan > 0 ? Date(timeIntervalSince1970: lastScan).formatted(date: .abbreviated, time: .shortened) : "—", "clock")
-            }
-            Text("Les compteurs sont conservés localement sur ce Mac. Ils ne mesurent que l’activité de MacClair.")
-                .font(.caption).foregroundStyle(soft)
         }
     }
 
-    private var stats: some View {
-        HStack(spacing: 12) {
-            metric("Éléments repérés", "\(model.items.count)", "doc.on.doc")
-            metric("Espace repéré", size(model.totalBytes), "internaldrive")
-            metric("À confirmer", size(model.selectedBytes), "checkmark.circle")
+    private var lensModuleView: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Text("Dossier : \(storageRoot.lastPathComponent)").font(.subheadline.bold())
+                Spacer()
+                Button("Choisir…") { chooseStorageFolder() }.buttonStyle(.bordered)
+                Button("Cartographier") { scanStorage() }
+                    .buttonStyle(ModernPrimaryButton(gradient: MacClairTheme.gradientLens))
+                    .disabled(auditingStorage)
+            }
+
+            if auditingStorage { ProgressView() }
+            else if let storage {
+                section("Dossiers volumineux") {
+                    ForEach(storage.folders.prefix(40)) { folder in
+                        VStack(alignment: .leading, spacing: 4) {
+                            fileRow(folder.url, trailing: size(folder.bytes))
+                            GeometryReader { geo in
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(MacClairTheme.gradientLens)
+                                    .frame(width: max(6, geo.size.width * CGFloat(folder.bytes) / CGFloat(max(1, storage.folders.first?.bytes ?? 1))), height: 5)
+                            }
+                            .frame(height: 5)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            } else { emptyState("Lancez la cartographie.") }
         }
+    }
+
+    private var cloudModuleView: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            section("Dossiers locaux détectés") {
+                ForEach(cloudFolders, id: \.self) { url in fileRow(url) }
+                if cloudFolders.isEmpty { Text("Aucun dossier synchronisé trouvé.").foregroundStyle(MacClairTheme.textTertiary) }
+            }
+        }
+    }
+
+    private var toolsModuleView: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            cleanupList(categories: [.diskImages])
+        }
+    }
+
+    private var activityModuleView: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 12) {
+                metricCard("Espace libéré", size(activity.totalFreed), "internaldrive.fill")
+                metricCard("Éléments", "\(activity.totalItems)", "doc.on.doc.fill")
+                metricCard("Nettoyages", "\(activity.totalCleanings)", "checkmark.seal.fill")
+            }
+
+            if activity.events.isEmpty {
+                emptyState("Aucune activité enregistrée.")
+            } else {
+                section("Historique") {
+                    ForEach(activity.events.prefix(25)) { event in
+                        HStack(spacing: 12) {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .foregroundStyle(MacClairTheme.emerald)
+
+                            Text(event.kind).font(.system(size: 13, weight: .semibold))
+                            Spacer()
+                            Text("\(size(event.freedBytes))")
+                                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                .foregroundStyle(MacClairTheme.textSecondary)
+                        }
+                        .padding(.vertical, 4)
+                        Divider()
+                    }
+
+                    Button("Réinitialiser") { activity.reset() }.buttonStyle(.bordered)
+                }
+            }
+        }
+    }
+
+    // MARK: - Component Helpers
+
+    private var statsCards: some View {
+        HStack(spacing: 12) {
+            metricCard("Éléments repérés", "\(model.items.count)", "doc.on.doc.fill")
+            metricCard("Espace analysé", size(model.totalBytes), "internaldrive.fill")
+            metricCard("À confirmer", size(model.selectedBytes), "checkmark.circle.fill")
+        }
+    }
+
+    private func metricCard(_ heading: String, _ value: String, _ symbol: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(MacClairTheme.cyan)
+
+            Text(value)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundStyle(MacClairTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Text(heading)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(MacClairTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .modifier(ModernGlassPanel(radius: 16))
+        .modifier(Pointer3DCard(maxAngle: 7, glowColor: MacClairTheme.cyan))
     }
 
     private func capabilities(_ items: [Capability]) -> some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
             ForEach(items) { item in
-                HStack(alignment: .top, spacing: 13) {
-                    Image(systemName: item.icon).font(.title3).foregroundStyle(item.available ? pink : soft)
+                HStack(alignment: .center, spacing: 12) {
+                    Image(systemName: item.icon)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(module.accentColor)
                         .frame(width: 28)
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(item.title).fontWeight(.semibold)
-                        Text(item.detail).font(.caption).foregroundStyle(soft)
-                        Text(item.available ? "Disponible" : "À venir")
-                            .font(.caption2.bold()).foregroundStyle(item.available ? .mint : .orange)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.title)
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundStyle(MacClairTheme.textPrimary)
+                        Text(item.detail)
+                            .font(.system(size: 11))
+                            .foregroundStyle(MacClairTheme.textSecondary)
                     }
                     Spacer(minLength: 0)
                 }
-                .frame(maxWidth: .infinity, minHeight: 80, alignment: .topLeading)
-                .padding(16).background(panel, in: RoundedRectangle(cornerRadius: 16))
+                .padding(14)
+                .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
+                .modifier(ModernGlassPanel(radius: 14))
+                .modifier(Pointer3DCard(maxAngle: 6, glowColor: module.accentColor))
             }
         }
     }
 
     private func section<Content: View>(_ heading: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(heading).font(.title3.bold())
+        VStack(alignment: .leading, spacing: 10) {
+            Text(heading)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(MacClairTheme.textPrimary)
+
             VStack(alignment: .leading, spacing: 12, content: content)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(18).background(panel, in: RoundedRectangle(cornerRadius: 18))
+                .padding(16)
+                .modifier(ModernGlassPanel(radius: 18))
         }
     }
 
-    private func metric(_ heading: String, _ value: String, _ symbol: String) -> some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Image(systemName: symbol).font(.title3).foregroundStyle(pink)
-            Text(value).font(.title3.bold()).lineLimit(1).minimumScaleFactor(0.7)
-            Text(heading).font(.caption).foregroundStyle(soft)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18).background(panel, in: RoundedRectangle(cornerRadius: 16))
-    }
+    private func statusRow(_ heading: String, _ detail: String, isOK: Bool) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: isOK ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .foregroundStyle(isOK ? MacClairTheme.emerald : MacClairTheme.amber)
+                .font(.system(size: 15))
 
-    private func status(_ heading: String, _ detail: String) -> some View {
-        HStack {
-            Text(heading).fontWeight(.semibold)
+            Text(heading).font(.system(size: 13, weight: .bold))
             Spacer()
-            Text(detail).font(.caption).foregroundStyle(soft).lineLimit(2)
+            Text(detail).font(.system(size: 12)).foregroundStyle(MacClairTheme.textSecondary)
         }
-        .padding(.vertical, 5)
+        .padding(.vertical, 3)
+    }
+
+    private func appRow(_ app: InstalledApp) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path))
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 30, height: 30)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(app.name).font(.system(size: 13, weight: .bold))
+                Text(app.bundleID).font(.system(size: 10)).foregroundStyle(MacClairTheme.textTertiary)
+            }
+
+            Spacer(minLength: 8)
+
+            Text(app.version).font(.system(size: 11, design: .monospaced)).foregroundStyle(MacClairTheme.textTertiary)
+
+            Button("Finder") { NSWorkspace.shared.activateFileViewerSelecting([app.url]) }
+                .buttonStyle(.borderless).font(.system(size: 11, weight: .semibold))
+
+            Button("Désinstaller") { prepareUninstall(app) }
+                .buttonStyle(.borderless)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(MacClairTheme.coral)
+                .disabled(uninstalling)
+        }
+        .padding(.vertical, 4)
     }
 
     private func fileRow(_ url: URL, trailing: String = "") -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "doc.fill").foregroundStyle(pink).frame(width: 20)
+        let iconInfo = fileIcon(for: url)
+        return HStack(spacing: 10) {
+            Image(systemName: iconInfo.name)
+                .foregroundStyle(iconInfo.color)
+                .font(.system(size: 14))
+                .frame(width: 20)
+
             VStack(alignment: .leading, spacing: 2) {
-                Text(url.lastPathComponent).lineLimit(1)
-                Text(url.deletingLastPathComponent().path).font(.caption2).foregroundStyle(soft).lineLimit(1)
+                Text(url.lastPathComponent)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
+                Text(url.deletingLastPathComponent().path)
+                    .font(.system(size: 10))
+                    .foregroundStyle(MacClairTheme.textTertiary)
+                    .lineLimit(1)
             }
+
             Spacer()
-            Text(trailing).font(.caption).foregroundStyle(soft).lineLimit(1)
-            Button("Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
-                .buttonStyle(.borderless).font(.caption)
+
+            if !trailing.isEmpty {
+                Text(trailing).font(.system(size: 11, design: .monospaced)).foregroundStyle(MacClairTheme.textSecondary)
+            }
+
+            Button {
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            } label: {
+                Image(systemName: "folder")
+                    .font(.system(size: 11))
+            }
+            .buttonStyle(.borderless)
         }
+        .padding(.vertical, 3)
     }
 
     private var selectedFileBytes: Int64 {
@@ -519,52 +1094,312 @@ struct ModernContentView: View {
 
     private var selectedFilesBar: some View {
         HStack(spacing: 14) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(pink)
-            Text("\(selectedFiles.count) fichier(s) sélectionné(s) • \(size(selectedFileBytes))")
-                .fontWeight(.semibold)
+            ZStack {
+                Circle().fill(selectedFiles.isEmpty ? Color.white.opacity(0.10) : MacClairTheme.cyan)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundStyle(Color(red: 0.02, green: 0.08, blue: 0.15))
+                    .opacity(selectedFiles.isEmpty ? 0 : 1)
+            }
+            .frame(width: 22, height: 22)
+
+            Text(selectedFiles.isEmpty ? "Aucun fichier sélectionné" : "\(selectedFiles.count) sélectionné(s) · \(size(selectedFileBytes))")
+                .font(.system(size: 13, weight: .bold))
+
             Spacer()
+
             if !selectedFiles.isEmpty {
-                Button("Effacer la sélection") {
+                Button("Tout décocher") {
                     selectedFiles.removeAll()
                     duplicateKeepers.removeAll()
                     bulkDuplicateSelection = false
                     bulkIncludedRisky = false
-                }.buttonStyle(.borderless)
+                }
+                .buttonStyle(.borderless)
+                .font(.system(size: 11, weight: .semibold))
             }
-            Button("Déplacer vers la Corbeille") { showFileTrashConfirmation = true }
-                .buttonStyle(.borderedProminent).tint(pink)
-                .disabled(selectedFiles.isEmpty || trashBusy || model.scanning)
+
+            Button {
+                showFileTrashConfirmation = true
+            } label: {
+                Label("Mettre à la Corbeille", systemImage: "trash.fill")
+            }
+            .buttonStyle(ModernPrimaryButton(gradient: MacClairTheme.gradientHero))
+            .disabled(selectedFiles.isEmpty || trashBusy || model.scanning)
         }
-        .padding(16)
-        .background(panel, in: RoundedRectangle(cornerRadius: 16))
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(selectedFiles.isEmpty ? Color.white.opacity(0.04) : MacClairTheme.cyan.opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(selectedFiles.isEmpty ? Color.white.opacity(0.08) : MacClairTheme.cyan.opacity(0.5), lineWidth: 1)
+        )
+    }
+
+    private func checkbox(_ on: Bool) -> some View {
+        ZStack {
+            Circle()
+                .fill(on ? MacClairTheme.cyan : Color.white.opacity(0.08))
+                .frame(width: 20, height: 20)
+
+            Circle()
+                .strokeBorder(on ? MacClairTheme.cyan : Color.white.opacity(0.35), lineWidth: 1.5)
+                .frame(width: 20, height: 20)
+
+            Image(systemName: "checkmark")
+                .font(.system(size: 10, weight: .heavy))
+                .foregroundStyle(Color(red: 0.02, green: 0.08, blue: 0.15))
+                .scaleEffect(on ? 1.0 : 0.2)
+                .opacity(on ? 1 : 0)
+        }
+        .scaleEffect(on ? 1.05 : 0.95)
+        .animation(.spring(response: 0.25, dampingFraction: 0.65), value: on)
     }
 
     private func selectableFileRow(_ url: URL, bytes: Int64? = nil, kept: Bool = false) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Toggle("Sélectionner \(url.lastPathComponent)", isOn: Binding(
-                get: { selectedFiles[url] != nil },
-                set: { setSelected(url, $0) }
-            ))
-            .labelsHidden()
-            .help("Sélectionner \(url.lastPathComponent)")
-            VStack(alignment: .leading, spacing: 5) {
+        let isSelected = selectedFiles[url] != nil
+        let iconInfo = fileIcon(for: url)
+
+        return HStack(alignment: .center, spacing: 12) {
+            checkbox(isSelected)
+
+            Image(systemName: iconInfo.name)
+                .foregroundStyle(iconInfo.color)
+                .font(.system(size: 14))
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 2) {
                 Text(url.lastPathComponent)
-                    .font(.system(size: 14, weight: .semibold))
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .font(.system(size: 13, weight: .bold))
+                    .lineLimit(1)
                 Text(url.path)
-                    .font(.caption)
-                    .foregroundStyle(soft)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .font(.system(size: 10))
+                    .foregroundStyle(MacClairTheme.textTertiary)
+                    .lineLimit(1)
             }
+
             Spacer(minLength: 8)
-            if kept { Text("Copie conservée").font(.caption.bold()).foregroundStyle(.mint) }
-            if let bytes { Text(size(bytes)).font(.caption).monospacedDigit().foregroundStyle(soft) }
-            Button("Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
-                .buttonStyle(.borderless).font(.caption)
+
+            if kept {
+                Text("Conservé")
+                    .font(.system(size: 9, weight: .heavy))
+                    .foregroundStyle(MacClairTheme.emerald)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(MacClairTheme.emerald.opacity(0.15), in: Capsule())
+            }
+
+            if let bytes {
+                Text(size(bytes))
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(MacClairTheme.textSecondary)
+            }
+
+            Button {
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            } label: {
+                Image(systemName: "folder").font(.system(size: 11))
+            }
+            .buttonStyle(.borderless)
         }
-        .padding(.vertical, 5)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isSelected ? MacClairTheme.cyan.opacity(0.14) : Color.white.opacity(0.03))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(isSelected ? MacClairTheme.cyan.opacity(0.55) : Color.white.opacity(0.06), lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { setSelected(url, !isSelected) }
+    }
+
+    private func selectionHeader(urls: [URL]) -> some View {
+        let selectedCount = urls.filter { selectedFiles[$0] != nil }.count
+        let selectedBytes = urls.compactMap { selectedFiles[$0]?.bytes }.reduce(0, +)
+        let allSelected = !urls.isEmpty && selectedCount == urls.count
+
+        return HStack(spacing: 10) {
+            Button {
+                setSelection(urls, !allSelected)
+            } label: {
+                Text(allSelected ? "Tout décocher" : "Tout cocher")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .buttonStyle(.bordered)
+
+            if selectedCount > 0 {
+                Text("\(selectedCount) · \(size(selectedBytes))")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(MacClairTheme.cyan)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func cleanupList(categories: Set<CleanupCategory>) -> some View {
+        let items = model.items.filter { categories.contains($0.category) }
+        let selectedIDs = Set(model.items.filter(\.selected).map(\.id))
+        let selectedHere = items.filter { selectedIDs.contains($0.id) }
+        let allSelected = !items.isEmpty && selectedHere.count == items.count
+
+        return section("Éléments anciens (\(items.count))") {
+            if model.scanning { ProgressView() }
+            else if !model.hasScanned { Text("Lancez l’analyse.").foregroundStyle(MacClairTheme.textTertiary) }
+            else if items.isEmpty { Text("Aucun fichier à nettoyer.").foregroundStyle(MacClairTheme.textTertiary) }
+            else {
+                HStack(spacing: 10) {
+                    Button {
+                        for index in model.items.indices where categories.contains(model.items[index].category) {
+                            model.items[index].selected = !allSelected
+                        }
+                    } label: {
+                        Text(allSelected ? "Tout décocher" : "Tout cocher")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .buttonStyle(.bordered).disabled(model.moving)
+
+                    if !selectedHere.isEmpty {
+                        Text("\(selectedHere.count) · \(size(selectedHere.reduce(0) { $0 + $1.bytes }))")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(MacClairTheme.cyan)
+                    }
+
+                    Spacer()
+
+                    Button { showTrashConfirmation = true } label: {
+                        Label("Nettoyer la sélection", systemImage: "trash.fill")
+                    }
+                    .buttonStyle(ModernPrimaryButton(gradient: MacClairTheme.gradientHero))
+                    .disabled(model.selectedCount == 0 || model.moving)
+                }
+                .padding(.bottom, 4)
+
+                ForEach(items.prefix(100)) { item in
+                    let isSelected = selectedIDs.contains(item.id)
+                    let iconInfo = fileIcon(for: item.id)
+
+                    HStack(spacing: 12) {
+                        checkbox(isSelected)
+
+                        Image(systemName: iconInfo.name)
+                            .foregroundStyle(iconInfo.color)
+                            .font(.system(size: 14))
+                            .frame(width: 20)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.id.lastPathComponent)
+                                .font(.system(size: 13, weight: .bold))
+                                .lineLimit(1)
+                            Text(item.id.deletingLastPathComponent().path)
+                                .font(.system(size: 10))
+                                .foregroundStyle(MacClairTheme.textTertiary)
+                                .lineLimit(1)
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Text(size(item.bytes))
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(MacClairTheme.textSecondary)
+
+                        Button {
+                            NSWorkspace.shared.activateFileViewerSelecting([item.id])
+                        } label: {
+                            Image(systemName: "folder").font(.system(size: 11))
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(isSelected ? MacClairTheme.cyan.opacity(0.14) : Color.white.opacity(0.03))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(isSelected ? MacClairTheme.cyan.opacity(0.55) : Color.white.opacity(0.06), lineWidth: 1)
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture { toggleItem(item) }
+                }
+            }
+        }
+    }
+
+    private func emptyState(_ text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "tray.fill")
+                .foregroundStyle(MacClairTheme.cyan)
+            Text(text)
+                .font(.system(size: 13))
+                .foregroundStyle(MacClairTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 70)
+        .modifier(ModernGlassPanel(radius: 16))
+    }
+
+    private func fileIcon(for url: URL) -> (name: String, color: Color) {
+        let ext = url.pathExtension.lowercased()
+        switch ext {
+        case "dmg", "pkg", "iso":
+            return ("shippingbox.fill", MacClairTheme.amber)
+        case "zip", "tar", "gz", "7z", "rar":
+            return ("archivebox.fill", MacClairTheme.purple)
+        case "log":
+            return ("doc.text.fill", MacClairTheme.rose)
+        case "cache":
+            return ("bolt.fill", MacClairTheme.cyan)
+        case "jpg", "jpeg", "png", "heic", "webp", "gif":
+            return ("photo.fill", MacClairTheme.emerald)
+        case "mov", "mp4", "m4v", "mkv":
+            return ("film.fill", MacClairTheme.violet)
+        case "mp3", "wav", "m4a", "flac":
+            return ("waveform", MacClairTheme.azure)
+        case "app":
+            return ("app.fill", MacClairTheme.purple)
+        default:
+            return ("doc.fill", MacClairTheme.azure)
+        }
+    }
+
+    // MARK: - Actions & Business Logic
+
+    private func toggleItem(_ item: CleanupItem) {
+        if let index = model.items.firstIndex(where: { $0.id == item.id }) {
+            model.items[index].selected.toggle()
+        }
+    }
+
+    private var cloudFolders: [URL] {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let roots = [
+            home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs"),
+            home.appendingPathComponent("Library/CloudStorage"),
+            home.appendingPathComponent("Dropbox")
+        ]
+        let cloudStorage = roots[1]
+        let nested = (try? FileManager.default.contentsOfDirectory(at: cloudStorage, includingPropertiesForKeys: nil)) ?? []
+        return (roots + nested).filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    private func setSelection(_ urls: [URL], _ value: Bool) {
+        duplicateKeepers.removeAll()
+        bulkDuplicateSelection = false
+        bulkIncludedRisky = false
+        if !value {
+            for url in urls { selectedFiles.removeValue(forKey: url) }
+            return
+        }
+        let trash = SafeTrash()
+        for url in urls where selectedFiles[url] == nil {
+            if let candidate = try? trash.capture(url) { selectedFiles[url] = candidate }
+        }
     }
 
     private func setSelected(_ url: URL, _ value: Bool) {
@@ -598,9 +1433,9 @@ struct ModernContentView: View {
             bulkDuplicateSelection = true
             bulkIncludedRisky = include
             if plan.selected.isEmpty {
-                trashFeedback = "Aucune copie préparée. \(plan.groupsSkipped) groupe(s) réparti(s) entre dossiers ou projets ont été ignorés. Activez l’option ci-dessus pour les inclure après vérification."
+                trashFeedback = "Aucune copie préparée."
             } else {
-                trashFeedback = "\(plan.selected.count) copie(s) préparée(s) dans \(plan.groupsPrepared) groupe(s). \(plan.groupsSkipped) groupe(s) ignoré(s), \(plan.protectedFiles) fichier(s) protégé(s)."
+                trashFeedback = "\(plan.selected.count) copie(s) préparée(s)."
                 showFileTrashConfirmation = true
             }
         }
@@ -609,7 +1444,9 @@ struct ModernContentView: View {
     private func moveSelectedFiles() {
         guard !selectedFiles.isEmpty && !trashBusy else { return }
         let candidates = Array(selectedFiles.values)
-        let groups = model.insights?.duplicates.map(\.files) ?? []
+        let duplicateGroups = model.insights?.duplicates ?? []
+        let groups = duplicateGroups.map(\.files)
+        let selected = Set(candidates.map(\.url))
         do {
             try SafeTrash().validateDuplicateSelection(Set(candidates.map(\.url)), groups: groups)
         } catch {
@@ -618,19 +1455,27 @@ struct ModernContentView: View {
         }
         trashBusy = true
         Task {
-            let outcome = await Task.detached(priority: .userInitiated) { () -> (Int, [String]) in
+            let outcome = await Task.detached(priority: .userInitiated) { () -> (moved: Int, freed: Int64, failures: [String]) in
                 let trash = SafeTrash()
                 var count = 0
+                var freed: Int64 = 0
                 var failures: [String] = []
                 for candidate in candidates {
                     do {
+                        if let group = duplicateGroups.first(where: { $0.files.contains(candidate.url) }) {
+                            guard let keeper = group.files.first(where: { !selected.contains($0) }) else {
+                                throw TrashError.lastDuplicate
+                            }
+                            try trash.validateDuplicate(candidate, keeper: keeper, expectedDigest: group.digest)
+                        }
                         try trash.moveToTrash(candidate)
                         count += 1
+                        freed += candidate.bytes
                     } catch {
                         failures.append("\(candidate.url.lastPathComponent) : \(error.localizedDescription)")
                     }
                 }
-                return (count, failures)
+                return (count, freed, failures)
             }.value
             selectedFiles.removeAll()
             duplicateKeepers.removeAll()
@@ -638,57 +1483,22 @@ struct ModernContentView: View {
             bulkIncludedRisky = false
             imageAudit = nil
             trashBusy = false
-            trashFeedback = "\(outcome.0) fichier(s) déplacé(s) vers la Corbeille." +
-                (outcome.1.isEmpty ? "" : " Échecs : " + outcome.1.prefix(3).joined(separator: " ; "))
+            trashFeedback = "\(outcome.moved) fichier(s) déplacé(s)."
+            activity.record(kind: "Fichiers inutiles", freed: outcome.freed, moved: outcome.moved)
             model.scan(insightRoot: clutterRoot)
         }
     }
 
-    private func cleanupList(categories: Set<CleanupCategory>) -> some View {
-        let items = model.items.filter { categories.contains($0.category) }
-        return section("Fichiers repérés • \(items.count)") {
-            if model.scanning { ProgressView("Analyse en cours…") }
-            else if !model.hasScanned { Text("Lancez l’analyse pour afficher les fichiers.").foregroundStyle(soft) }
-            else if items.isEmpty { Text("Aucun fichier de plus de 30 jours repéré.").foregroundStyle(soft) }
-            else {
-                ForEach(items.prefix(100)) { item in
-                    HStack(spacing: 10) {
-                        if item.canMoveToTrash {
-                            Toggle("", isOn: Binding(
-                                get: { model.items.first(where: { $0.id == item.id })?.selected ?? false },
-                                set: { value in
-                                    if let i = model.items.firstIndex(where: { $0.id == item.id }) { model.items[i].selected = value }
-                                }
-                            )).labelsHidden()
-                        } else { Image(systemName: "lock.shield").foregroundStyle(soft).frame(width: 20) }
-                        fileRow(item.id, trailing: size(item.bytes))
-                    }
-                }
-                if items.count > 100 { Text("\(items.count - 100) autres résultats non affichés").font(.caption).foregroundStyle(soft) }
-            }
-            if categories.contains(.diskImages) {
-                Button("Déplacer la sélection vers la Corbeille (\(model.selectedCount))") { showTrashConfirmation = true }
-                    .buttonStyle(.borderedProminent).tint(pink)
-                    .disabled(model.selectedCount == 0 || model.scanning || model.moving)
-            }
-            if let message = model.message { Text(message).font(.caption).foregroundStyle(soft) }
+    private func runSmartClean() {
+        model.cleanRecommended { moved, freed in
+            activity.record(kind: "Nettoyage", freed: freed, moved: moved)
         }
     }
 
-    private func empty(_ text: String) -> some View {
-        HStack { Image(systemName: "sparkle.magnifyingglass"); Text(text) }
-            .foregroundStyle(soft).frame(maxWidth: .infinity, minHeight: 100)
-            .background(panel, in: RoundedRectangle(cornerRadius: 18))
-    }
-
-    private var cloudFolders: [URL] {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let roots = [home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs"),
-                     home.appendingPathComponent("Library/CloudStorage"),
-                     home.appendingPathComponent("Dropbox")]
-        let cloudStorage = roots[1]
-        let nested = (try? FileManager.default.contentsOfDirectory(at: cloudStorage, includingPropertiesForKeys: nil)) ?? []
-        return (roots + nested).filter { FileManager.default.fileExists(atPath: $0.path) }
+    private func moveCleanSelection() {
+        model.moveSelectedToTrash { moved, freed in
+            activity.record(kind: "Caches et journaux", freed: freed, moved: moved)
+        }
     }
 
     private func runScan() {
@@ -724,18 +1534,70 @@ struct ModernContentView: View {
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
         panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
-        panel.prompt = "Analyser ce dossier"
+        panel.prompt = "Analyser"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         let downloads = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads").resolvingSymlinksInPath().standardizedFileURL.path
         let chosen = url.resolvingSymlinksInPath().standardizedFileURL.path
         guard chosen == downloads || chosen.hasPrefix(downloads + "/") else {
-            trashFeedback = "Choisissez un dossier situé dans Téléchargements."
+            trashFeedback = "Choisissez un sous-dossier de Téléchargements."
             return
         }
         clutterRoot = url
         selectedFiles.removeAll()
         trashFeedback = nil
         runScan()
+    }
+
+    private func scanPrivacy() {
+        guard !auditingPrivacy else { return }
+        auditingPrivacy = true
+        Task {
+            privacyAudit = await Task.detached(priority: .userInitiated) { PrivacyAuditor().scan() }.value
+            auditingPrivacy = false
+        }
+    }
+
+    private func scanDeveloper() {
+        guard !auditingDeveloper else { return }
+        auditingDeveloper = true
+        Task {
+            developerAudit = await Task.detached(priority: .userInitiated) { DeveloperJunkAuditor().scan() }.value
+            auditingDeveloper = false
+        }
+    }
+
+    private func prepareUninstall(_ app: InstalledApp) {
+        guard !uninstalling else { return }
+        pendingUninstall = app
+        uninstallPlan = nil
+        Task {
+            let plan = await Task.detached(priority: .userInitiated) {
+                UninstallerPlanner().plan(appURL: app.url)
+            }.value
+            uninstallPlan = plan
+            showUninstallConfirmation = true
+        }
+    }
+
+    private func performUninstall() {
+        guard let plan = uninstallPlan, let app = pendingUninstall, !uninstalling else { return }
+        uninstalling = true
+        uninstallFeedback = nil
+        let urls = plan.items.map(\.url)
+        Task {
+            let result = await Task.detached(priority: .userInitiated) {
+                AppUninstaller().moveToTrash(urls)
+            }.value
+            uninstalling = false
+            removedApps.insert(app.url)
+            activity.record(kind: "Désinstallation · \(app.name)", freed: result.freed, moved: result.moved)
+            if result.moved > 0 {
+                uninstallFeedback = "\(app.name) : \(result.moved) élément(s) déplacé(s) · \(size(result.freed)) libérés."
+            } else {
+                uninstallFeedback = "Aucun élément déplacé."
+            }
+            uninstallPlan = nil
+        }
     }
 
     private func scanStorage() {
@@ -761,5 +1623,10 @@ struct ModernContentView: View {
     private func size(_ bytes: Int64) -> String {
         if bytes == 0 { return "0 octet" }
         return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    }
+
+    private func memory(_ bytes: Int64) -> String {
+        if bytes == 0 { return "—" }
+        return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .memory)
     }
 }

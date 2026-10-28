@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 @main
 struct SafeTrashSmoke {
@@ -25,6 +26,34 @@ struct SafeTrashSmoke {
             try safe.validate(candidate)
             preconditionFailure("Modification non détectée")
         } catch TrashError.changed {}
+        // A stale scan must never authorize moving a file as a duplicate.
+        let digest = SHA256.hash(data: Data("test".utf8)).map { String(format: "%02x", $0) }.joined()
+        let secondCandidate = try safe.capture(second)
+        try Data("test".utf8).write(to: first)
+        try safe.validateDuplicate(secondCandidate, keeper: first, expectedDigest: digest)
+        try Data("autre".utf8).write(to: first)
+        do {
+            try safe.validateDuplicate(secondCandidate, keeper: first, expectedDigest: digest)
+            preconditionFailure("Copie conservée modifiée autorisée")
+        } catch TrashError.duplicateChanged {}
+        try fm.removeItem(at: first)
+        do {
+            try safe.validateDuplicate(secondCandidate, keeper: first, expectedDigest: digest)
+            preconditionFailure("Copie conservée absente autorisée")
+        } catch TrashError.duplicateChanged {}
+        try Data("test".utf8).write(to: first)
+        try Data("change".utf8).write(to: second)
+        do {
+            try safe.validateDuplicate(secondCandidate, keeper: first, expectedDigest: digest)
+            preconditionFailure("Doublon modifié autorisé")
+        } catch TrashError.changed {}
+        try Data("else".utf8).write(to: second)
+        let staleCandidate = try safe.capture(second)
+        do {
+            try safe.validateDuplicate(staleCandidate, keeper: first, expectedDigest: digest)
+            preconditionFailure("Contenu changé depuis l’analyse autorisé")
+        } catch TrashError.duplicateChanged {}
+        try Data("test".utf8).write(to: second)
         let outside = home.appendingPathComponent("Library/test.pdf")
         try fm.createDirectory(at: outside.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data("autre".utf8).write(to: outside)

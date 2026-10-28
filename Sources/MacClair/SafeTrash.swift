@@ -1,5 +1,6 @@
 import Foundation
 import Darwin
+import CryptoKit
 
 struct TrashCandidate: Identifiable, Sendable {
     let url: URL
@@ -25,6 +26,7 @@ enum TrashError: LocalizedError {
     case changed
     case lastDuplicate
     case protectedPath
+    case duplicateChanged
 
     var errorDescription: String? {
         switch self {
@@ -32,6 +34,7 @@ enum TrashError: LocalizedError {
         case .notRegularFile: "Ce fichier n’est pas un fichier ordinaire."
         case .changed: "Ce fichier a changé depuis sa sélection. Relancez l’analyse."
         case .lastDuplicate: "Une copie doit rester dans chaque groupe de doublons."
+        case .duplicateChanged: "Le doublon ou la copie conservée a changé ou est inaccessible. Relancez l’analyse."
         case .protectedPath: "Les fichiers internes de projets, de paquets et les dossiers cachés sont protégés."
         }
     }
@@ -67,6 +70,39 @@ struct SafeTrash: Sendable {
     func moveToTrash(_ candidate: TrashCandidate) throws {
         try validate(candidate)
         try FileManager.default.trashItem(at: candidate.url, resultingItemURL: nil)
+    }
+
+    /// Rechecks the scanned digest and an unselected keeper immediately before a move.
+    func validateDuplicate(_ candidate: TrashCandidate, keeper: URL, expectedDigest: String) throws {
+        try validate(candidate)
+        // A keeper may be outside Downloads, but must remain a regular, unchanged file.
+        guard let before = identity(keeper), let keeperDigest = digest(keeper),
+              let after = identity(keeper), sameIdentity(before, after),
+              keeperDigest == expectedDigest, let candidateDigest = digest(candidate.url),
+              candidateDigest == expectedDigest else { throw TrashError.duplicateChanged }
+        try validate(candidate)
+        guard let final = identity(keeper), sameIdentity(after, final) else { throw TrashError.duplicateChanged }
+    }
+
+    private func sameIdentity(_ a: stat, _ b: stat) -> Bool {
+        a.st_dev == b.st_dev && a.st_ino == b.st_ino && a.st_size == b.st_size &&
+        a.st_mtimespec.tv_sec == b.st_mtimespec.tv_sec && a.st_mtimespec.tv_nsec == b.st_mtimespec.tv_nsec
+    }
+
+    private func digest(_ url: URL) -> String? {
+        guard let stream = InputStream(url: url) else { return nil }
+        stream.open()
+        defer { stream.close() }
+        var hasher = SHA256()
+        var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+        while true {
+            let count = stream.read(&buffer, maxLength: buffer.count)
+            if count < 0 { return nil }
+            if count == 0 { break }
+            buffer.withUnsafeBytes { hasher.update(bufferPointer: UnsafeRawBufferPointer(start: $0.baseAddress, count: count)) }
+        }
+        guard stream.streamError == nil else { return nil }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     func validateDuplicateSelection(_ selected: Set<URL>, groups: [[URL]]) throws {
