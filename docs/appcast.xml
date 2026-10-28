@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>MacClair</title>
+    <link>https://github.com/Najmabdi7/MacClair</link>
+    <description>Flux de mises a jour genere par le workflow de release.</description>
+    <language>fr</language>
+  </channel>
+</rss>

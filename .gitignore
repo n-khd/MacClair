@@ -1,10 +1,5 @@
 .build/
 .cache/
 dist/
+vendor/
 .DS_Store
-.graphify-venv/
-graphify-out/
-.graphifyignore
-.codex/
-rea-smartcare-snapshot.json
-AGENTS.md

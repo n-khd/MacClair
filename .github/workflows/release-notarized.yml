@@ -82,7 +82,24 @@ jobs:
             echo "ASC_ISSUER_ID=$ASC_ISSUER_ID"
           } >> "$GITHUB_ENV"
 
+      - name: Installer Sparkle
+        env:
+          SPARKLE_VERSION: "2.10.1"
+        run: |
+          set -euo pipefail
+          mkdir -p vendor
+          curl -fsSL -o "$RUNNER_TEMP/sparkle.tar.xz" \
+            "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+          tar -xf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP" Sparkle.framework
+          rm -rf vendor/Sparkle.framework
+          ditto "$RUNNER_TEMP/Sparkle.framework" vendor/Sparkle.framework
+          du -sh vendor/Sparkle.framework
+          echo "SPARKLE_FRAMEWORK_DIR=$GITHUB_WORKSPACE/vendor" >> "$GITHUB_ENV"
+
       - name: Compiler et signer l'application
+        env:
+          SU_FEED_URL: https://najmabdi7.github.io/MacClair/appcast.xml
+          SU_PUBLIC_ED_KEY: "G9sIb+Be2ryNBDEhaRWqvFXm8r7O18oJMqVu+IC7kEk="
         run: |
           set -euo pipefail
           export CODESIGN_IDENTITY="$IDENTITY"
@@ -148,6 +165,55 @@ jobs:
           ( cd dist && shasum -a 256 "$ZIP" "$DMG" > SHA256SUMS )
           cat dist/SHA256SUMS
 
+      - name: Générer et publier l'appcast Sparkle
+        env:
+          SPARKLE_ED_KEY_B64: ${{ secrets.SPARKLE_ED_PRIVATE_KEY_B64 }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SPARKLE_ED_KEY_B64:-}" ]; then
+            echo "::error::Secret SPARKLE_ED_PRIVATE_KEY_B64 manquant."
+            exit 1
+          fi
+          echo "$SPARKLE_ED_KEY_B64" | base64 --decode > "$RUNNER_TEMP/sparkle.pem"
+          chmod 600 "$RUNNER_TEMP/sparkle.pem"
+          SIG="$(openssl pkeyutl -sign -inkey "$RUNNER_TEMP/sparkle.pem" -rawin -in "dist/$ZIP" | base64 | tr -d '\n')"
+          LEN="$(stat -f%z "dist/$ZIP")"
+          BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' dist/MacClair.app/Contents/Info.plist)"
+          PUBDATE="$(LC_ALL=C date -u '+%a, %d %b %Y %H:%M:%S +0000')"
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}/${ZIP}"
+          rm -f "$RUNNER_TEMP/sparkle.pem"
+          mkdir -p docs
+          {
+            echo '<?xml version="1.0" encoding="utf-8"?>'
+            echo '<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">'
+            echo '  <channel>'
+            echo '    <title>MacClair</title>'
+            echo "    <link>https://github.com/${GITHUB_REPOSITORY}</link>"
+            echo '    <description>Mises a jour de MacClair</description>'
+            echo '    <language>fr</language>'
+            echo '    <item>'
+            echo "      <title>MacClair ${VERSION}</title>"
+            echo "      <pubDate>${PUBDATE}</pubDate>"
+            echo "      <sparkle:version>${BUILD}</sparkle:version>"
+            echo "      <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>"
+            echo '      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>'
+            echo '      <description><![CDATA[Signee Developer ID et notariee par Apple. Corrections et ameliorations de l utilitaire.]]></description>'
+            echo "      <enclosure url=\"${URL}\" sparkle:version=\"${BUILD}\" sparkle:shortVersionString=\"${VERSION}\" sparkle:edSignature=\"${SIG}\" length=\"${LEN}\" type=\"application/octet-stream\"/>"
+            echo '    </item>'
+            echo '  </channel>'
+            echo '</rss>'
+          } > docs/appcast.xml
+          xmllint --noout docs/appcast.xml
+          cat docs/appcast.xml
+          CONTENT="$(base64 < docs/appcast.xml | tr -d '\n')"
+          EXISTING_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/contents/docs/appcast.xml" --jq .sha 2>/dev/null || true)"
+          jq -n --arg message "appcast ${VERSION}" --arg content "$CONTENT" --arg sha "$EXISTING_SHA" \
+            '{message: $message, content: $content} + (if $sha == "" then {} else {sha: $sha} end)' \
+            > "$RUNNER_TEMP/appcast-payload.json"
+          gh api -X PUT "repos/${GITHUB_REPOSITORY}/contents/docs/appcast.xml" \
+            --input "$RUNNER_TEMP/appcast-payload.json" --jq '.commit.sha'
+
       - name: Publier la release GitHub
         env:
           GH_TOKEN: ${{ github.token }}
@@ -163,6 +229,10 @@ jobs:
             echo "- DMG : ouvrir \`$DMG\`, puis glisser MacClair dans Applications."
             echo "- Homebrew : \`brew install --cask najmabdi7/tap/macclair\`"
             echo "- Zip : décompresser et déplacer \`MacClair.app\` dans Applications."
+            echo ""
+            echo "### Mises à jour"
+            echo ""
+            echo "L'application vérifie elle-même les nouvelles versions (Sparkle) et propose de l'installer : menu **MacClair > Rechercher des mises à jour…**. Les signatures EdDSA du flux \`appcast.xml\` sont vérifiées avant toute installation."
             echo ""
             echo "Intégrité : comparer la somme d'un fichier téléchargé avec le fichier \`SHA256SUMS\` de cette release."
           } > "$RUNNER_TEMP/notes.md"
