@@ -102,7 +102,7 @@ jobs:
 
       - name: Compiler et signer l'application
         env:
-          SU_FEED_URL: https://najmabdi7.github.io/MacClair/appcast.xml
+          SU_FEED_URL: https://n-khd.github.io/MacClair/appcast.xml
           SU_PUBLIC_ED_KEY: "G9sIb+Be2ryNBDEhaRWqvFXm8r7O18oJMqVu+IC7kEk="
         run: |
           set -euo pipefail
@@ -261,7 +261,7 @@ jobs:
             echo "### Installation"
             echo ""
             echo "- DMG : ouvrir \`$DMG\`, puis glisser MacClair dans Applications."
-            echo "- Homebrew : \`brew install --cask najmabdi7/tap/macclair\`"
+            echo "- Homebrew : \`brew install --cask n-khd/tap/macclair\`"
             echo "- Zip : décompresser et déplacer \`MacClair.app\` dans Applications."
             echo ""
             echo "### Mises à jour"
@@ -292,7 +292,7 @@ jobs:
           SHA="$(shasum -a 256 "dist/$DMG" | awk '{print $1}')"
           rm -rf "$RUNNER_TEMP/tap"
           git clone --depth 1 \
-            "https://x-access-token:${TAP_TOKEN}@github.com/Najmabdi7/homebrew-tap.git" \
+            "https://x-access-token:${TAP_TOKEN}@github.com/n-khd/homebrew-tap.git" \
             "$RUNNER_TEMP/tap"
           mkdir -p "$RUNNER_TEMP/tap/Casks"
           {
@@ -300,10 +300,10 @@ jobs:
             echo "  version \"$VERSION\""
             echo "  sha256 \"$SHA\""
             echo ""
-            echo '  url "https://github.com/Najmabdi7/MacClair/releases/download/v#{version}/MacClair-#{version}-macOS-arm64.dmg"'
+            echo '  url "https://github.com/n-khd/MacClair/releases/download/v#{version}/MacClair-#{version}-macOS-arm64.dmg"'
             echo '  name "MacClair"'
             echo '  desc "Utilitaire macOS libre pour analyser le stockage et deplacer des fichiers vers la Corbeille"'
-            echo '  homepage "https://github.com/Najmabdi7/MacClair"'
+            echo '  homepage "https://github.com/n-khd/MacClair"'
             echo ""
             echo "  auto_updates true"
             echo ""

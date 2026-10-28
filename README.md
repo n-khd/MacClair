@@ -11,7 +11,7 @@ Trois façons, au choix :
 **Homebrew** (mises à jour gérées par `brew upgrade`)
 
 ```sh
-brew install --cask najmabdi7/tap/macclair
+brew install --cask n-khd/tap/macclair
 ```
 
 **DMG** — téléchargez `MacClair-<version>-macOS-arm64.dmg` depuis la page [Releases](../../releases), ouvrez l’image et glissez `MacClair` dans le dossier Applications.
