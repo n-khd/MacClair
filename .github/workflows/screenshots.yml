@@ -13,17 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Installer Sparkle
-        env:
-          SPARKLE_VERSION: "2.10.1"
-        run: |
-          set -euo pipefail
-          mkdir -p vendor
-          curl -fsSL -o "$RUNNER_TEMP/sparkle.tar.xz" \
-            "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
-          tar -xf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP" Sparkle.framework
-          ditto "$RUNNER_TEMP/Sparkle.framework" vendor/Sparkle.framework
-
       - name: Compiler l'outil de capture
         run: |
           set -euo pipefail
@@ -31,8 +20,6 @@ jobs:
           mkdir -p .build
           xcrun swiftc -sdk "$SDKROOT" -target "$(uname -m)-apple-macosx14.0" -parse-as-library -O \
             -swift-version 5 -DSNAPSHOT \
-            -F vendor -framework Sparkle \
-            -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
             -module-cache-path .cache/swift \
             -o .build/macclair-snapshot \
             Sources/MacClair/*.swift Sources/MacClairSnapshot/main.swift
