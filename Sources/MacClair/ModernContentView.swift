@@ -276,7 +276,7 @@ struct ModernContentView: View {
 
     private func sidebarGroup(_ title: String, items: [Module]) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(.system(size: 8.5, weight: .heavy))
                 .tracking(1.4)
                 .foregroundStyle(MacClairTheme.textTertiary)
@@ -318,7 +318,7 @@ struct ModernContentView: View {
                 .frame(width: 28, height: 28)
                 .shadow(color: active ? item.accentColor.opacity(0.4) : Color.clear, radius: 6)
 
-                Text(item.rawValue)
+                Text(LocalizedStringKey(item.rawValue))
                     .font(.system(size: 13, weight: active ? .bold : .medium, design: .rounded))
                     .foregroundStyle(
                         active
@@ -364,11 +364,11 @@ struct ModernContentView: View {
     private var titleBar: some View {
         HStack(alignment: .center, spacing: 18) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(module.rawValue)
+                Text(LocalizedStringKey(module.rawValue))
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(MacClairTheme.textPrimary)
 
-                Text(module.subtitle)
+                Text(LocalizedStringKey(module.subtitle))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(MacClairTheme.textSecondary)
             }
@@ -382,7 +382,7 @@ struct ModernContentView: View {
                             .font(.system(size: 12, weight: .bold))
                             .rotationEffect(.degrees(model.scanning ? 360 : 0))
                             .animation(model.scanning ? .linear(duration: 1.2).repeatForever(autoreverses: false) : .default, value: model.scanning)
-                        Text(model.scanning ? "Analyse…" : "Analyser")
+                        Text(model.scanning ? LocalizedStringKey("Analyse…") : LocalizedStringKey("Analyser"))
                     }
                 }
                 .buttonStyle(ModernPrimaryButton(gradient: module.gradient))
@@ -403,7 +403,7 @@ struct ModernContentView: View {
                         .frame(width: 7, height: 7)
                         .shadow(color: model.scanning ? MacClairTheme.cyan : MacClairTheme.emerald, radius: 4)
 
-                    Text(model.scanning ? "Analyse en cours…" : (model.hasScanned ? "Diagnostic terminé" : "Prêt à scanner"))
+                    Text(model.scanning ? LocalizedStringKey("Analyse en cours…") : (model.hasScanned ? LocalizedStringKey("Diagnostic terminé") : LocalizedStringKey("Prêt à scanner")))
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(model.scanning ? MacClairTheme.cyan : (model.hasScanned ? MacClairTheme.emerald : MacClairTheme.cyan))
                 }
@@ -449,7 +449,7 @@ struct ModernContentView: View {
                         Button(action: runScan) {
                             HStack(spacing: 7) {
                                 Image(systemName: model.hasScanned ? "arrow.clockwise" : "play.fill")
-                                Text(model.scanning ? "Analyse…" : (model.hasScanned ? "Re-scanner" : "Lancer l’analyse"))
+                                Text(model.scanning ? LocalizedStringKey("Analyse…") : (model.hasScanned ? LocalizedStringKey("Re-scanner") : LocalizedStringKey("Lancer l’analyse")))
                             }
                         }
                         .buttonStyle(ModernPrimaryButton(gradient: MacClairTheme.gradientHero))
@@ -504,7 +504,7 @@ struct ModernContentView: View {
                 Text("Déplacement vers la Corbeille…")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundStyle(MacClairTheme.textPrimary)
-                Text(model.cleanProgress)
+                Text(LocalizedStringKey(model.cleanProgress))
                     .font(.system(size: 12))
                     .foregroundStyle(MacClairTheme.textSecondary)
             }
@@ -528,7 +528,7 @@ struct ModernContentView: View {
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundStyle(MacClairTheme.textPrimary)
 
-                Text(summary)
+                Text(LocalizedStringKey(summary))
                     .font(.system(size: 12))
                     .foregroundStyle(MacClairTheme.textSecondary)
             }
@@ -620,7 +620,7 @@ struct ModernContentView: View {
                     Text("• Doublons vérifiés par empreinte SHA-256 (copie protégée).")
                     Text("• Déplacements réversibles dans la Corbeille.")
                     if let report = model.insights {
-                        Text("\(report.scannedFiles) fichiers examinés\(report.limited ? " · limite atteinte" : "").")
+                        Text(LocalizedStringKey("\(report.scannedFiles) fichiers examinés\(report.limited ? ") · limite atteinteLocalizedStringKey(" : ")LocalizedStringKey(")."))
                             .foregroundStyle(MacClairTheme.mint)
                     }
                 }
@@ -781,7 +781,7 @@ struct ModernContentView: View {
                     Button {
                         withAnimation(.snappy(duration: 0.25)) { clutterTab = tab }
                     } label: {
-                        Text(tab.rawValue)
+                        Text(LocalizedStringKey(tab.rawValue))
                             .font(.system(size: 13, weight: clutterTab == tab ? .bold : .medium))
                             .foregroundStyle(clutterTab == tab ? Color(red: 0.02, green: 0.05, blue: 0.12) : MacClairTheme.textSecondary)
                             .padding(.horizontal, 14)
@@ -924,7 +924,7 @@ struct ModernContentView: View {
                             Image(systemName: "arrow.down.circle.fill")
                                 .foregroundStyle(MacClairTheme.emerald)
 
-                            Text(event.kind).font(.system(size: 13, weight: .semibold))
+                            Text(LocalizedStringKey(event.kind)).font(.system(size: 13, weight: .semibold))
                             Spacer()
                             Text("\(size(event.freedBytes))")
                                 .font(.system(size: 12, weight: .bold, design: .monospaced))
@@ -956,13 +956,13 @@ struct ModernContentView: View {
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(MacClairTheme.cyan)
 
-            Text(value)
+            Text(LocalizedStringKey(value))
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundStyle(MacClairTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
-            Text(heading)
+            Text(LocalizedStringKey(heading))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(MacClairTheme.textSecondary)
         }
@@ -982,10 +982,10 @@ struct ModernContentView: View {
                         .frame(width: 28)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(item.title)
+                        Text(LocalizedStringKey(item.title))
                             .font(.system(size: 13, weight: .bold, design: .rounded))
                             .foregroundStyle(MacClairTheme.textPrimary)
-                        Text(item.detail)
+                        Text(LocalizedStringKey(item.detail))
                             .font(.system(size: 11))
                             .foregroundStyle(MacClairTheme.textSecondary)
                     }
@@ -1001,7 +1001,7 @@ struct ModernContentView: View {
 
     private func section<Content: View>(_ heading: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(heading)
+            Text(LocalizedStringKey(heading))
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundStyle(MacClairTheme.textPrimary)
 
@@ -1018,9 +1018,9 @@ struct ModernContentView: View {
                 .foregroundStyle(isOK ? MacClairTheme.emerald : MacClairTheme.amber)
                 .font(.system(size: 15))
 
-            Text(heading).font(.system(size: 13, weight: .bold))
+            Text(LocalizedStringKey(heading)).font(.system(size: 13, weight: .bold))
             Spacer()
-            Text(detail).font(.system(size: 12)).foregroundStyle(MacClairTheme.textSecondary)
+            Text(LocalizedStringKey(detail)).font(.system(size: 12)).foregroundStyle(MacClairTheme.textSecondary)
         }
         .padding(.vertical, 3)
     }
@@ -1074,7 +1074,7 @@ struct ModernContentView: View {
             Spacer()
 
             if !trailing.isEmpty {
-                Text(trailing).font(.system(size: 11, design: .monospaced)).foregroundStyle(MacClairTheme.textSecondary)
+                Text(LocalizedStringKey(trailing)).font(.system(size: 11, design: .monospaced)).foregroundStyle(MacClairTheme.textSecondary)
             }
 
             Button {
@@ -1103,7 +1103,7 @@ struct ModernContentView: View {
             }
             .frame(width: 22, height: 22)
 
-            Text(selectedFiles.isEmpty ? "Aucun fichier sélectionné" : "\(selectedFiles.count) sélectionné(s) · \(size(selectedFileBytes))")
+            Text(selectedFiles.isEmpty ? LocalizedStringKey("Aucun fichier sélectionné") : LocalizedStringKey("\(selectedFiles.count) sélectionné(s) · \(size(selectedFileBytes))"))
                 .font(.system(size: 13, weight: .bold))
 
             Spacer()
@@ -1227,7 +1227,7 @@ struct ModernContentView: View {
             Button {
                 setSelection(urls, !allSelected)
             } label: {
-                Text(allSelected ? "Tout décocher" : "Tout cocher")
+                Text(allSelected ? LocalizedStringKey("Tout décocher") : LocalizedStringKey("Tout cocher"))
                     .font(.system(size: 11, weight: .semibold))
             }
             .buttonStyle(.bordered)
@@ -1259,7 +1259,7 @@ struct ModernContentView: View {
                             model.items[index].selected = !allSelected
                         }
                     } label: {
-                        Text(allSelected ? "Tout décocher" : "Tout cocher")
+                        Text(allSelected ? LocalizedStringKey("Tout décocher") : LocalizedStringKey("Tout cocher"))
                             .font(.system(size: 11, weight: .semibold))
                     }
                     .buttonStyle(.bordered).disabled(model.moving)
@@ -1336,7 +1336,7 @@ struct ModernContentView: View {
         HStack(spacing: 10) {
             Image(systemName: "tray.fill")
                 .foregroundStyle(MacClairTheme.cyan)
-            Text(text)
+            Text(LocalizedStringKey(text))
                 .font(.system(size: 13))
                 .foregroundStyle(MacClairTheme.textSecondary)
         }

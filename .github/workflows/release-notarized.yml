@@ -201,20 +201,25 @@ jobs:
           set -euo pipefail
           TAG="v$VERSION"
           {
-            echo "Build compilée sur runner macOS, signée avec un certificat Developer ID et notariée par Apple."
-            echo "Aucun contournement de Gatekeeper n'est nécessaire."
+            echo "Signed with a Developer ID certificate and **notarized by Apple**. No Gatekeeper workaround needed."
             echo ""
-            echo "### Installation"
+            echo "### Install"
             echo ""
-            echo "- DMG : ouvrir \`$DMG\`, puis glisser MacClair dans Applications."
-            echo "- Homebrew : \`brew install --cask n-khd/tap/macclair\`"
-            echo "- Zip : décompresser et déplacer \`MacClair.app\` dans Applications."
+            echo "- DMG: open \`$DMG\` and drag MacClair into Applications."
+            echo "- Homebrew: \`brew install --cask n-khd/tap/macclair\`"
+            echo "- Zip: unzip and move \`MacClair.app\` into Applications."
             echo ""
-            echo "### Mises à jour"
+            echo "### Updates"
             echo ""
-            echo "L'application vérifie elle-même les nouvelles versions (Sparkle) et propose de l'installer : menu **MacClair > Rechercher des mises à jour…**. Les signatures EdDSA du flux \`appcast.xml\` sont vérifiées avant toute installation."
+            echo "MacClair updates itself through Sparkle (**MacClair > Check for updates…**). The \`appcast.xml\` feed is EdDSA-signed and checked before anything is installed."
             echo ""
-            echo "Intégrité : comparer la somme d'un fichier téléchargé avec le fichier \`SHA256SUMS\` de cette release."
+            echo "### Languages"
+            echo ""
+            echo "Interface available in French and English, following the macOS language by default (menu **MacClair > Langue / Language**)."
+            echo ""
+            echo "Integrity: compare a downloaded file with the \`SHA256SUMS\` file of this release."
+            echo ""
+            echo "_Version française : [README.fr.md](https://github.com/$GITHUB_REPOSITORY/blob/main/README.fr.md)._"
           } > "$RUNNER_TEMP/notes.md"
           if gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             echo "::error::La release $TAG existe déjà ; ses fichiers ne seront pas remplacés."
@@ -304,7 +309,7 @@ jobs:
             echo ""
             echo '  url "https://github.com/n-khd/MacClair/releases/download/v#{version}/MacClair-#{version}-macOS-arm64.dmg"'
             echo '  name "MacClair"'
-            echo '  desc "Utilitaire macOS libre pour analyser le stockage et deplacer des fichiers vers la Corbeille"'
+            echo '  desc "Open-source macOS utility to analyze disk usage and move personal files to the Trash"'
             echo '  homepage "https://github.com/n-khd/MacClair"'
             echo ""
             echo "  auto_updates true"
