@@ -103,6 +103,10 @@ open dist/MacClair.app
 
 The built app lands in `dist/MacClair.app`. The script applies an ad-hoc signature for local development; it does no Developer ID signing and no notarization.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
 ## Contributing
 
 Issues and proposals are welcome in GitHub issues. For contributions see [CONTRIBUTING.md](CONTRIBUTING.md); to report a vulnerability see [SECURITY.md](SECURITY.md). Code and assets are released under the [MIT license](LICENSE). MacClair is an independent project and is not affiliated with MacPaw.

@@ -109,6 +109,10 @@ open dist/MacClair.app
 
 L’application compilée se trouve dans `dist/MacClair.app`. Le script applique une signature ad hoc pour le développement local. Il ne réalise ni signature Developer ID ni notarisation.
 
+## Journal des versions
+
+Voir [CHANGELOG.md](CHANGELOG.md).
+
 ## Participer
 
 Les problèmes et propositions peuvent être ouverts dans les issues GitHub. Pour contribuer, consultez [CONTRIBUTING.md](CONTRIBUTING.md) ; pour signaler une vulnérabilité, consultez [SECURITY.md](SECURITY.md). Le code et les ressources de ce dépôt sont distribués sous [licence MIT](LICENSE). MacClair est un projet indépendant et n’est pas affilié à MacPaw.
