@@ -6,16 +6,19 @@ MacClair est une application macOS libre, en français, pour examiner l’espace
 
 ## Télécharger
 
-Téléchargez l’archive `MacClair-0.5.0-macOS-arm64.zip` depuis la page [Releases](../../releases), décompressez-la et déplacez `MacClair.app` dans le dossier Applications. Cette archive est prévue pour les Mac Apple Silicon sous macOS 14 ou plus récent. Le code source est également téléchargeable depuis la même page.
+Téléchargez l’archive `MacClair-0.5.1-macOS-arm64.zip` depuis la page [Releases](../../releases), décompressez-la et déplacez `MacClair.app` dans le dossier Applications. Cette archive est prévue pour les Mac Apple Silicon sous macOS 14 ou plus récent. Le code source est également téléchargeable depuis la même page.
 
-### Première ouverture de cette version
+### Signature et notarisation
 
-Cette release possède une signature ad hoc et **n’est pas notariée par Apple**. macOS affiche donc un avertissement et peut refuser de l’ouvrir au premier essai.
+Les archives à partir de la version 0.5.1 sont signées avec un certificat **Developer ID Application** et **notariées par Apple** ; le ticket de notarisation est agrafé dans l’application. macOS doit donc l’ouvrir sans aucun avertissement Gatekeeper et sans réglage particulier.
 
-1. Téléchargez l’archive uniquement depuis la release GitHub ci-dessus. Si vous souhaitez vérifier son intégrité, comparez sa somme SHA-256 avec le fichier `SHA256SUMS` de la même release (`shasum -a 256 MacClair-0.5.0-macOS-arm64.zip`).
-2. Après l’avertissement, cliquez sur **Terminé**. Ouvrez **Réglages Système > Confidentialité et sécurité**, descendez jusqu’à **Sécurité**, puis choisissez **Ouvrir quand même** pour MacClair. Confirmez avec **Ouvrir**. Ce bouton peut n’apparaître que pendant environ une heure après la tentative d’ouverture.
+Pour vérifier l’intégrité du téléchargement, comparez la somme SHA-256 de l’archive avec le fichier `SHA256SUMS` de la même release :
 
-Cette exception concerne seulement MacClair ; ne désactivez pas la sécurité du Mac. Voir [les instructions officielles d’Apple](https://support.apple.com/fr-fr/102445). Une distribution sans cet avertissement nécessitera un certificat Developer ID et la notarisation Apple.
+```sh
+shasum -a 256 MacClair-0.5.1-macOS-arm64.zip
+```
+
+Les builds sont produits par le workflow GitHub Actions `.github/workflows/release-notarized.yml` (compilation, signature Developer ID, notarisation Apple, agrafage, contrôle `spctl`, publication). L’archive 0.5.0, plus ancienne, était seulement signée ad hoc et nécessitait un contournement manuel de Gatekeeper.
 
 ## Fonctions disponibles
 
