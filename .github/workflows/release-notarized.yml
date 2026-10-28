@@ -207,8 +207,8 @@ jobs:
           # sparkle:edSignature / sparkle:length attendus par le framework.
           ATTRS="$("$SIGN_UPDATE" --ed-key-file "$RUNNER_TEMP/sparkle.key" "dist/$ZIP")"
           echo "$ATTRS"
-          SIG="$(printf '%s' "$ATTRS" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')"
-          LEN="$(printf '%s' "$ATTRS" | sed -n 's/.*sparkle:length="\([^"]*\)".*/\1/p')"
+          SIG="$(printf '%s' "$ATTRS" | grep -oE 'sparkle:edSignature="[^"]+"' | sed -E 's/.*="([^"]+)"/\1/' | head -1)"
+          LEN="$(printf '%s' "$ATTRS" | grep -oE '(sparkle:)?length="[0-9]+"' | grep -oE '[0-9]+' | head -1)"
           rm -f "$RUNNER_TEMP/sparkle.key"
           if [ -z "$SIG" ] || [ -z "$LEN" ]; then
             echo "::error::Signature Sparkle impossible (sortie inattendue de sign_update)."
