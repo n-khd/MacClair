@@ -1,6 +1,8 @@
 import SwiftUI
 
+#if !SNAPSHOT
 @main
+#endif
 struct MacClairApp: App {
     #if canImport(Sparkle)
     @StateObject private var updates = UpdateController()
