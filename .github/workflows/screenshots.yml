@@ -1,0 +1,50 @@
+name: Captures d'écran
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    name: Rendre l'interface en PNG (FR + EN)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Sparkle
+        env:
+          SPARKLE_VERSION: "2.10.1"
+        run: |
+          set -euo pipefail
+          mkdir -p vendor
+          curl -fsSL -o "$RUNNER_TEMP/sparkle.tar.xz" \
+            "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+          tar -xf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP" Sparkle.framework
+          ditto "$RUNNER_TEMP/Sparkle.framework" vendor/Sparkle.framework
+
+      - name: Compiler l'outil de capture
+        run: |
+          set -euo pipefail
+          SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
+          mkdir -p .build
+          xcrun swiftc -sdk "$SDKROOT" -target "$(uname -m)-apple-macosx14.0" -parse-as-library -O \
+            -swift-version 5 -DSNAPSHOT \
+            -F vendor -framework Sparkle \
+            -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
+            -module-cache-path .cache/swift \
+            -o .build/macclair-snapshot \
+            Sources/MacClair/*.swift Sources/MacClairSnapshot/main.swift
+
+      - name: Rendre les captures
+        run: |
+          set -euo pipefail
+          ./.build/macclair-snapshot dist/screenshots
+          ls -l dist/screenshots
+
+      - name: Publier les captures
+        uses: actions/upload-artifact@v4
+        with:
+          name: macclair-screenshots
+          path: dist/screenshots/*.png
