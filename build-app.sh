@@ -8,11 +8,28 @@ if [[ "$ARCH" != arm64 && "$ARCH" != x86_64 ]]; then
     echo "Architecture macOS non prise en charge : $ARCH" >&2
     exit 1
 fi
+
+# Sparkle : activé seulement si le framework est disponible. Sans lui, l'application compile et
+# fonctionne normalement, mais sans recherche de mises à jour (voir Sources/MacClair/Updater.swift).
+SPARKLE_FW="${SPARKLE_FRAMEWORK_DIR:-}"
+if [[ -z "$SPARKLE_FW" && -d "$PWD/vendor/Sparkle.framework" ]]; then
+    SPARKLE_FW="$PWD/vendor"
+fi
+SWIFT_SPARKLE=()
+if [[ -n "$SPARKLE_FW" && -d "$SPARKLE_FW/Sparkle.framework" ]]; then
+    SWIFT_SPARKLE=(-F "$SPARKLE_FW" -framework Sparkle
+        -Xlinker -rpath -Xlinker "@executable_path/../Frameworks")
+    echo "Sparkle : $SPARKLE_FW/Sparkle.framework"
+else
+    echo "Sparkle absent : compilation sans mise à jour automatique."
+fi
+
 SDKROOT="$SDKROOT" \
 CLANG_MODULE_CACHE_PATH="$PWD/.cache/clang" \
 xcrun swiftc -sdk "$SDKROOT" \
     -target "${ARCH}-apple-macosx14.0" -parse-as-library -O \
     -swift-version 5 \
+    "${SWIFT_SPARKLE[@]}" \
     -module-cache-path .cache/swift \
     -o .build/MacClair Sources/MacClair/*.swift
 APP="$PWD/dist/MacClair.app"
@@ -21,8 +38,20 @@ mkdir -p "$APP/Contents/Resources"
 cp .build/MacClair "$APP/Contents/MacOS/MacClair"
 cp Assets/hero-storage.png "$APP/Contents/Resources/hero-storage.png"
 cp Assets/MacClair.icns "$APP/Contents/Resources/MacClair.icns"
+if [[ ${#SWIFT_SPARKLE[@]} -gt 0 ]]; then
+    mkdir -p "$APP/Contents/Frameworks"
+    rm -rf "$APP/Contents/Frameworks/Sparkle.framework"
+    ditto "$SPARKLE_FW/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.framework"
+fi
 VERSION="${MACCLAIR_VERSION:-0.5.0}"
 BUILD_NUMBER="${MACCLAIR_BUILD:-5}"
+UPDATE_KEYS=""
+if [[ -n "${SU_FEED_URL:-}" && -n "${SU_PUBLIC_ED_KEY:-}" ]]; then
+    UPDATE_KEYS="<key>SUFeedURL</key><string>${SU_FEED_URL}</string>
+<key>SUPublicEDKey</key><string>${SU_PUBLIC_ED_KEY}</string>
+<key>SUEnableAutomaticChecks</key><true/>
+<key>SUAllowsAutomaticUpdates</key><true/>"
+fi
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -36,6 +65,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <key>CFBundleVersion</key><string>${BUILD_NUMBER}</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSPrincipalClass</key><string>NSApplication</string>
+${UPDATE_KEYS}
 </dict></plist>
 PLIST
 SIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
@@ -44,7 +74,7 @@ if [[ "$SIGN_IDENTITY" == "-" ]]; then
     echo "Signature ad hoc (aucune identité Developer ID fournie)."
 else
     codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
-    codesign --verify --strict "$APP"
+    codesign --verify --strict --verbose=2 "$APP"
     echo "Signé avec : $SIGN_IDENTITY"
 fi
 echo "$APP"

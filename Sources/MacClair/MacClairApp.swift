@@ -2,12 +2,25 @@ import SwiftUI
 
 @main
 struct MacClairApp: App {
+    #if canImport(Sparkle)
+    @StateObject private var updates = UpdateController()
+    #endif
+
     var body: some Scene {
         WindowGroup("MacClair") {
             ModernContentView()
                 .frame(minWidth: 1080, minHeight: 700)
         }
         .windowStyle(.titleBar)
+        .commands {
+            #if canImport(Sparkle)
+            CommandGroup(after: .appInfo) {
+                Button("Rechercher des mises à jour…") {
+                    updates.checkForUpdates()
+                }
+            }
+            #endif
+        }
     }
 }
 

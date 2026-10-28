@@ -32,6 +32,12 @@ shasum -a 256 MacClair-0.5.2-macOS-arm64.dmg
 
 Les builds sont produits par le workflow GitHub Actions `.github/workflows/release-notarized.yml` (compilation, signature Developer ID, notarisation Apple, agrafage, contrôle `spctl`, publication). L’archive 0.5.0, plus ancienne, était seulement signée ad hoc et nécessitait un contournement manuel de Gatekeeper.
 
+### Mises à jour
+
+À partir de la version 0.6.0, MacClair se met à jour toute seule via [Sparkle](https://sparkle-project.org) : elle vérifie le flux signé `appcast.xml`, prévient quand une version plus récente existe et l’installe. La vérification manuelle est dans le menu **MacClair › Rechercher des mises à jour…**.
+
+Chaque mise à jour est authentifiée par une signature EdDSA (clé publique dans `SUPublicEDKey` de l’Info.plist) : un binaire modifié ou un flux détourné est refusé, macOS vérifie en plus la signature Developer ID et la notarisation avant de remplacer l’application.
+
 ## Fonctions disponibles
 
 - Vue d’ensemble et analyses locales.
