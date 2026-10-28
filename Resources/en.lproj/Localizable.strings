@@ -195,3 +195,10 @@
 "Analyse…" = "Scanning…";
 "%lld sélectionné(s) · %@" = "%lld selected · %@";
 "MacClair — %@" = "MacClair — %@";
+
+/* Navigation et sous-titres des modules */
+"Nettoyage" = "Cleaning";
+"Performances" = "Performance";
+"Outils" = "Tools";
+"EXPLORER" = "EXPLORE";
+"UTILITAIRES" = "UTILITIES";
