@@ -73,6 +73,22 @@ if [[ "$SIGN_IDENTITY" == "-" ]]; then
     codesign --force --sign - "$APP" >/dev/null
     echo "Signature ad hoc (aucune identité Developer ID fournie)."
 else
+    # Sparkle : les binaires imbriqués livrés dans l'archive amont ne sont pas signés avec notre
+    # identité (même des binaires ad hoc), ce que la notarisation refuse. On les re-signe du plus
+    # profond au plus haut, avant de sceller l'application.
+    FW="$APP/Contents/Frameworks/Sparkle.framework"
+    if [[ -d "$FW" ]]; then
+        for item in \
+            "$FW/Versions/B/XPCServices/Downloader.xpc" \
+            "$FW/Versions/B/XPCServices/Installer.xpc" \
+            "$FW/Versions/B/Updater.app" \
+            "$FW/Versions/B/Autoupdate"; do
+            [[ -e "$item" ]] && codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$item"
+        done
+        codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$FW/Versions/B"
+        codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$FW"
+        echo "Sparkle re-signé avec l'identité Developer ID."
+    fi
     codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
     codesign --verify --strict --verbose=2 "$APP"
     echo "Signé avec : $SIGN_IDENTITY"
