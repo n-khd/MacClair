@@ -26,11 +26,11 @@ Three ways, pick one.
 brew install --cask n-khd/tap/macclair
 ```
 
-**DMG** — download `MacClair-<version>-macOS-universal.dmg` from the [Releases](https://github.com/n-khd/MacClair/releases) page, open the image and drag `MacClair` into Applications.
+**DMG** — download the `.dmg` of the latest release from the [Releases](https://github.com/n-khd/MacClair/releases) page, open the image and drag `MacClair` into Applications.
 
-**Zip** — download `MacClair-<version>-macOS-universal.zip`, unzip it and move `MacClair.app` into Applications.
+**Zip** — download the `.zip` of the latest release, unzip it and move `MacClair.app` into Applications.
 
-Builds are universal — Apple Silicon **and** Intel — for macOS 14 or later. The source code is on the same release page.
+Builds are **universal** (Apple Silicon **and** Intel) from the next release on; 0.8.0 and earlier were Apple Silicon only. macOS 14 or later, source code on the same release page.
 
 ### Signed and notarized
 
@@ -39,7 +39,7 @@ Every release is signed with a **Developer ID Application** certificate and **no
 To check the integrity of a download, compare its SHA-256 with the `SHA256SUMS` file of the same release:
 
 ```sh
-shasum -a 256 MacClair-<version>-macOS-universal.dmg
+shasum -a 256 MacClair-*.dmg
 ```
 
 Builds are produced by `.github/workflows/release-notarized.yml` (compile, Developer ID signature, Apple notarization, stapling, `spctl` check, publishing).

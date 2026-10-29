@@ -26,11 +26,11 @@ Trois façons, au choix :
 brew install --cask n-khd/tap/macclair
 ```
 
-**DMG** — téléchargez `MacClair-<version>-macOS-universal.dmg` depuis la page [Releases](../../releases), ouvrez l’image et glissez `MacClair` dans le dossier Applications.
+**DMG** — téléchargez le `.dmg` de la dernière version depuis la page [Releases](../../releases), ouvrez l’image et glissez `MacClair` dans le dossier Applications.
 
-**Zip** — téléchargez `MacClair-<version>-macOS-universal.zip`, décompressez-le et déplacez `MacClair.app` dans le dossier Applications.
+**Zip** — téléchargez le `.zip` de la dernière version, décompressez-le et déplacez `MacClair.app` dans le dossier Applications.
 
-Ces archives sont universelles — Apple Silicon **et** Intel — pour macOS 14 ou plus récent. Le code source est également téléchargeable depuis la même page.
+Les archives sont **universelles** (Apple Silicon **et** Intel) à partir de la prochaine version ; 0.8.0 et antérieures étaient Apple Silicon uniquement. macOS 14 ou plus récent. Le code source est également téléchargeable depuis la même page.
 
 ### Signature et notarisation
 
@@ -39,7 +39,7 @@ Les archives ZIP à partir de la version 0.5.1 et les DMG à partir de la versio
 Pour vérifier l’intégrité du téléchargement, comparez la somme SHA-256 de l’archive avec le fichier `SHA256SUMS` de la même release :
 
 ```sh
-shasum -a 256 MacClair-<version>-macOS-universal.dmg
+shasum -a 256 MacClair-*.dmg
 ```
 
 Les builds sont produits par le workflow GitHub Actions `.github/workflows/release-notarized.yml` (compilation, signature Developer ID, notarisation Apple, agrafage, contrôle `spctl`, publication). L’archive 0.5.0, plus ancienne, était seulement signée ad hoc et nécessitait un contournement manuel de Gatekeeper.
