@@ -114,6 +114,19 @@ asked to change, even if the feature is nice.
 - No CLA, no copyright assignment. Your contribution is published under the MIT licence and you
   keep the credit.
 
+## When the build fights you
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| CI stays queued for 10–15 min, then shows “cancelled” | macOS arm64 runner capacity on GitHub's side | Re-run the job from the Actions tab. Nothing is wrong with your branch. |
+| `xcrun: error: unable to find utility "swiftc"` | Only the Command Line Tools are installed, or `xcode-select` points elsewhere | `xcode-select --install`, or `sudo xcode-select -s /Applications/Xcode.app` |
+| `error: package manifest requires Swift 6.0` | Xcode older than 16 | Update Xcode, or run `./test.sh`, which calls `swiftc` directly and never reads `Package.swift` |
+| `Sparkle absent : compilation sans mise à jour automatique` | Expected locally | The updater is only compiled when `vendor/Sparkle.framework` exists |
+| The app opens but the interface is in the wrong language | The bundle kept the previous `macclair.language` preference | **MacClair › Langue / Language**, or `defaults delete local.macclair.app macclair.language` |
+
+Still stuck? Open a discussion with the command you ran and the full error — a build failure report is
+a contribution, not a nuisance.
+
 ## Review
 
 The maintainer reviews on a best-effort basis, usually within a week. You may get "not now" or
