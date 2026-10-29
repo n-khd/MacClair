@@ -2,6 +2,16 @@
 
 All notable changes to MacClair. Dates are release dates (Europe/Brussels).
 
+## Unreleased
+
+- Contribution layer: `CONTRIBUTING.md` and `CONTRIBUTING.fr.md` (first pull request in 20 minutes,
+  code map, the six safety rules, build troubleshooting), plus `docs/ARCHITECTURE.md` and
+  `docs/TRANSLATING.md` for adding a language with a single file.
+- GitHub housekeeping: pull request template, code of conduct, bilingual issue forms, a translation
+  form, Discussions and private security links, a pinned “Start here” issue and a `good first issue`
+  backlog covering translation, VoiceOver, shortcuts, sorting, the MCP smoke test, a universal build
+  and the appcast check.
+
 ## 0.8.0 — 2026-10-28
 
 - Interface available in **French and English**, following the macOS language by default,
