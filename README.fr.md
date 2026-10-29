@@ -30,7 +30,7 @@ brew install --cask n-khd/tap/macclair
 
 **Zip** — téléchargez le `.zip` de la dernière version, décompressez-le et déplacez `MacClair.app` dans le dossier Applications.
 
-Les archives sont **universelles** (Apple Silicon **et** Intel) à partir de la prochaine version ; 0.8.0 et antérieures étaient Apple Silicon uniquement. macOS 14 ou plus récent. Le code source est également téléchargeable depuis la même page.
+Les archives sont **universelles** — Apple Silicon **et** Intel — pour macOS 14 ou plus récent. Le code source est également téléchargeable depuis la même page.
 
 ### Signature et notarisation
 
