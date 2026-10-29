@@ -122,6 +122,19 @@ sera renvoyée, même si la fonctionnalité est séduisante.
 - Pas de CLA, aucune cession de droits. Votre contribution est publiée sous licence MIT et vous
   gardez le crédit.
 
+## Quand la compilation résiste
+
+| Symptôme | Cause | Solution |
+|---|---|---|
+| La CI reste en file 10 à 15 min puis affiche « cancelled » | Capacité des runners macOS arm64 chez GitHub | Relancez le job depuis l'onglet Actions. Votre branche n'y est pour rien. |
+| `xcrun: error: unable to find utility "swiftc"` | Seuls les outils en ligne de commande sont installés, ou `xcode-select` pointe ailleurs | `xcode-select --install`, ou `sudo xcode-select -s /Applications/Xcode.app` |
+| `error: package manifest requires Swift 6.0` | Xcode antérieur à 16 | Mettez Xcode à jour, ou lancez `./test.sh`, qui appelle `swiftc` directement sans lire `Package.swift` |
+| `Sparkle absent : compilation sans mise à jour automatique` | Normal en local | L'updater n'est compilé que si `vendor/Sparkle.framework` existe |
+| L'application s'ouvre dans la mauvaise langue | La préférence `macclair.language` est conservée | **MacClair › Langue / Language**, ou `defaults delete local.macclair.app macclair.language` |
+
+Toujours bloqué ? Ouvrez une discussion avec la commande lancée et l'erreur complète : un échec de
+compilation signalé est une contribution, pas un dérangement.
+
 ## Revue
 
 Le mainteneur relit au mieux, en général sous une semaine. Vous pouvez recevoir « pas maintenant »
