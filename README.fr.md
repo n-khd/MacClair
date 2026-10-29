@@ -2,6 +2,8 @@
 
 **Français** · [English](README.md)
 
+![Release](https://img.shields.io/github/v/release/n-khd/MacClair?display_name=tag&sort=semver) ![Downloads](https://img.shields.io/github/downloads/n-khd/MacClair/total) ![License](https://img.shields.io/github/license/n-khd/MacClair) ![Platform](https://img.shields.io/badge/macOS_14%2B-Apple_Silicon-000?logo=apple) ![Languages](https://img.shields.io/badge/langues-fr_%7C_en-2e6bff)
+
 MacClair est une application macOS libre, en français et en anglais, pour examiner l’espace disque et déplacer prudemment des fichiers personnels vers la Corbeille. L’interface s’inspire de la catégorie des utilitaires de nettoyage Mac, mais le code, les textes et l’icône sont originaux. La version actuelle **ne possède pas toutes les fonctionnalités de CleanMyMac** et n’a pas subi le même niveau de validation.
 
 MacClair privilégie les analyses locales et les opérations explicites : tout fichier déplacé part à la Corbeille, où il peut être restauré, et chaque action est confirmée.
