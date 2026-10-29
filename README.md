@@ -30,7 +30,7 @@ brew install --cask n-khd/tap/macclair
 
 **Zip** — download the `.zip` of the latest release, unzip it and move `MacClair.app` into Applications.
 
-Builds are **universal** (Apple Silicon **and** Intel) from the next release on; 0.8.0 and earlier were Apple Silicon only. macOS 14 or later, source code on the same release page.
+Builds are **universal** — Apple Silicon **and** Intel — for macOS 14 or later. The source code is on the same release page.
 
 ### Signed and notarized
 

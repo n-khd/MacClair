@@ -2,7 +2,7 @@
 
 All notable changes to MacClair. Dates are release dates (Europe/Brussels).
 
-## Unreleased
+## 0.9.0 — 2026-10-29
 
 - **Universal build**: releases now ship `MacClair-<version>-macOS-universal.dmg` / `.zip` with
   `arm64` and `x86_64` slices for both `MacClair` and `macclair-mcp`. `build-app.sh` takes
