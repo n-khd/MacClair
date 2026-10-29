@@ -26,11 +26,11 @@ Trois façons, au choix :
 brew install --cask n-khd/tap/macclair
 ```
 
-**DMG** — téléchargez `MacClair-<version>-macOS-arm64.dmg` depuis la page [Releases](../../releases), ouvrez l’image et glissez `MacClair` dans le dossier Applications.
+**DMG** — téléchargez `MacClair-<version>-macOS-universal.dmg` depuis la page [Releases](../../releases), ouvrez l’image et glissez `MacClair` dans le dossier Applications.
 
-**Zip** — téléchargez `MacClair-<version>-macOS-arm64.zip`, décompressez-le et déplacez `MacClair.app` dans le dossier Applications.
+**Zip** — téléchargez `MacClair-<version>-macOS-universal.zip`, décompressez-le et déplacez `MacClair.app` dans le dossier Applications.
 
-Ces archives sont prévues pour les Mac Apple Silicon sous macOS 14 ou plus récent. Le code source est également téléchargeable depuis la même page.
+Ces archives sont universelles — Apple Silicon **et** Intel — pour macOS 14 ou plus récent. Le code source est également téléchargeable depuis la même page.
 
 ### Signature et notarisation
 
@@ -39,7 +39,7 @@ Les archives ZIP à partir de la version 0.5.1 et les DMG à partir de la versio
 Pour vérifier l’intégrité du téléchargement, comparez la somme SHA-256 de l’archive avec le fichier `SHA256SUMS` de la même release :
 
 ```sh
-shasum -a 256 MacClair-0.8.0-macOS-arm64.dmg
+shasum -a 256 MacClair-<version>-macOS-universal.dmg
 ```
 
 Les builds sont produits par le workflow GitHub Actions `.github/workflows/release-notarized.yml` (compilation, signature Developer ID, notarisation Apple, agrafage, contrôle `spctl`, publication). L’archive 0.5.0, plus ancienne, était seulement signée ad hoc et nécessitait un contournement manuel de Gatekeeper.
@@ -107,7 +107,7 @@ Ces contrôles réduisent le risque sans garantir une sécurité absolue. L’ap
 
 ## Compiler et tester
 
-Prérequis : macOS 14 ou plus récent et Xcode ou les outils de ligne de commande Apple avec Swift 6. La compilation utilise le SDK macOS installé localement et cible l’architecture du Mac utilisé.
+Prérequis : macOS 14 ou plus récent et Xcode ou les outils de ligne de commande Apple avec Swift 6. La compilation utilise le SDK macOS installé localement et cible l’architecture du Mac utilisé ; `MACCLAIR_ARCHS="arm64 x86_64" ./build-app.sh` produit un binaire universel.
 
 ```sh
 ./test.sh

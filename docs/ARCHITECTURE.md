@@ -107,8 +107,12 @@ French is the development language. `MacClairApp` resolves the active `Locale` f
 
 ## Release path
 
-`release-notarized.yml` (`workflow_dispatch` with a version, or a `v*` tag): build on `macos-14`,
-Developer ID sign (including the nested Sparkle binaries), notarize the app **and** the DMG, staple
-both, verify with `spctl`, publish zip + dmg + `SHA256SUMS`, then regenerate `docs/appcast.xml` with
+`release-notarized.yml` (`workflow_dispatch` with a version, or a `v*` tag): build on `macos-14` with
+`MACCLAIR_ARCHS="arm64 x86_64"` (universal — both slices asserted with `lipo -archs` before anything
+is signed), Developer ID sign (including the nested Sparkle binaries), notarize the app **and** the DMG, staple
+both, verify with `spctl`, publish `MacClair-<version>-macOS-universal.zip` + `.dmg` + `SHA256SUMS`, then regenerate `docs/appcast.xml` with
 Sparkle's `sign_update` and commit it through the contents API. The Homebrew tap
 (`n-khd/homebrew-tap`) bumps itself daily from `releases/latest`.
+
+The app binary and `macclair-mcp` are each compiled once per architecture and merged with `lipo`, so a
+contributor on an Intel Mac builds and tests exactly what ships.
