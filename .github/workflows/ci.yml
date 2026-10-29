@@ -12,5 +12,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Tests
         run: ./test.sh
-      - name: Compiler l'application
-        run: ./build-app.sh
+      - name: Compiler l'application (arm64 + x86_64)
+        env:
+          MACCLAIR_ARCHS: arm64 x86_64
+        run: |
+          set -euo pipefail
+          ./build-app.sh
+          for bin in dist/MacClair.app/Contents/MacOS/MacClair dist/MacClair.app/Contents/MacOS/macclair-mcp; do
+            ARCHS="$(lipo -archs "$bin")"
+            echo "$bin : $ARCHS"
+            [[ "$ARCHS" == *arm64* && "$ARCHS" == *x86_64* ]] || {
+              echo "::error::$bin n'est pas universel ($ARCHS)"; exit 1;
+            }
+          done

@@ -4,6 +4,11 @@ All notable changes to MacClair. Dates are release dates (Europe/Brussels).
 
 ## Unreleased
 
+- **Universal build**: releases now ship `MacClair-<version>-macOS-universal.dmg` / `.zip` with
+  `arm64` and `x86_64` slices for both `MacClair` and `macclair-mcp`. `build-app.sh` takes
+  `MACCLAIR_ARCHS="arm64 x86_64"` and merges the slices with `lipo`; CI builds universal on every
+  pull request and fails if a slice regresses. The Homebrew cask no longer requires Apple Silicon.
+
 - Contribution layer: `CONTRIBUTING.md` and `CONTRIBUTING.fr.md` (first pull request in 20 minutes,
   code map, the six safety rules, build troubleshooting), plus `docs/ARCHITECTURE.md` and
   `docs/TRANSLATING.md` for adding a language with a single file.
