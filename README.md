@@ -2,7 +2,7 @@
 
 **English** · [Français](README.fr.md)
 
-![Release](https://img.shields.io/github/v/release/n-khd/MacClair?display_name=tag&sort=semver) ![Downloads](https://img.shields.io/github/downloads/n-khd/MacClair/total) ![License](https://img.shields.io/github/license/n-khd/MacClair) ![Platform](https://img.shields.io/badge/macOS_14%2B-Apple_Silicon-000?logo=apple) ![Languages](https://img.shields.io/badge/langues-fr_%7C_en-2e6bff)
+![Release](https://img.shields.io/github/v/release/n-khd/MacClair?display_name=tag&sort=semver) ![Downloads](https://img.shields.io/github/downloads/n-khd/MacClair/total) ![License](https://img.shields.io/github/license/n-khd/MacClair) ![Platform](https://img.shields.io/badge/macOS_14%2B-Apple_Silicon-000?logo=apple) ![Languages](https://img.shields.io/badge/langs-fr_%7C_en-2e6bff)
 
 MacClair is a free, open-source macOS utility that maps your disk usage and moves personal files to the Trash — carefully. It sits in the same category as the commercial Mac cleaners, but the code, the wording and the icon are original. It does **not** implement every feature of CleanMyMac, and it has not been through the same level of validation.
 
