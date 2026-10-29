@@ -2,7 +2,7 @@
 
 **English** · [Français](README.fr.md)
 
-![Release](https://img.shields.io/github/v/release/n-khd/MacClair?display_name=tag&sort=semver) ![Downloads](https://img.shields.io/github/downloads/n-khd/MacClair/total) ![License](https://img.shields.io/github/license/n-khd/MacClair) ![Platform](https://img.shields.io/badge/macOS_14%2B-Apple_Silicon-000?logo=apple) ![Languages](https://img.shields.io/badge/langs-fr_%7C_en-2e6bff)
+![Release](https://img.shields.io/github/v/release/n-khd/MacClair?display_name=tag&sort=semver) ![Downloads](https://img.shields.io/github/downloads/n-khd/MacClair/total) ![License](https://img.shields.io/github/license/n-khd/MacClair) ![Platform](https://img.shields.io/badge/macOS_14%2B-Universal-000?logo=apple) ![Languages](https://img.shields.io/badge/langs-fr_%7C_en-2e6bff)
 
 MacClair is a free, open-source macOS utility that maps your disk usage and moves personal files to the Trash — carefully. It sits in the same category as the commercial Mac cleaners, but the code, the wording and the icon are original. It does **not** implement every feature of CleanMyMac, and it has not been through the same level of validation.
 
@@ -26,11 +26,11 @@ Three ways, pick one.
 brew install --cask n-khd/tap/macclair
 ```
 
-**DMG** — download `MacClair-<version>-macOS-arm64.dmg` from the [Releases](https://github.com/n-khd/MacClair/releases) page, open the image and drag `MacClair` into Applications.
+**DMG** — download `MacClair-<version>-macOS-universal.dmg` from the [Releases](https://github.com/n-khd/MacClair/releases) page, open the image and drag `MacClair` into Applications.
 
-**Zip** — download `MacClair-<version>-macOS-arm64.zip`, unzip it and move `MacClair.app` into Applications.
+**Zip** — download `MacClair-<version>-macOS-universal.zip`, unzip it and move `MacClair.app` into Applications.
 
-All builds target Apple Silicon Macs running macOS 14 or later. The source code is on the same release page.
+Builds are universal — Apple Silicon **and** Intel — for macOS 14 or later. The source code is on the same release page.
 
 ### Signed and notarized
 
@@ -39,7 +39,7 @@ Every release is signed with a **Developer ID Application** certificate and **no
 To check the integrity of a download, compare its SHA-256 with the `SHA256SUMS` file of the same release:
 
 ```sh
-shasum -a 256 MacClair-0.8.0-macOS-arm64.dmg
+shasum -a 256 MacClair-<version>-macOS-universal.dmg
 ```
 
 Builds are produced by `.github/workflows/release-notarized.yml` (compile, Developer ID signature, Apple notarization, stapling, `spctl` check, publishing).
@@ -101,7 +101,7 @@ These checks reduce risk; they do not guarantee absolute safety. The app has not
 
 ## Build and test
 
-Requirements: macOS 14 or later, plus Xcode or the Apple command-line tools with Swift 6. The build uses the locally installed macOS SDK and targets the architecture of the current Mac.
+Requirements: macOS 14 or later, plus Xcode or the Apple command-line tools with Swift 6. The build uses the locally installed macOS SDK and targets the architecture of the current Mac; set `MACCLAIR_ARCHS="arm64 x86_64" ./build-app.sh` to produce a universal binary.
 
 ```sh
 ./test.sh

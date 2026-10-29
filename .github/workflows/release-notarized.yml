@@ -112,6 +112,8 @@ jobs:
           export CODESIGN_IDENTITY="$IDENTITY"
           export MACCLAIR_VERSION="$VERSION"
           export MACCLAIR_BUILD="${GITHUB_RUN_NUMBER}"
+          # Release universelle : Apple Silicon et Intel dans le même binaire.
+          export MACCLAIR_ARCHS="arm64 x86_64"
           zsh ./build-app.sh
 
       - name: Vérifier la signature
@@ -120,6 +122,13 @@ jobs:
           codesign --verify --strict --verbose=2 dist/MacClair.app
           codesign -dv --verbose=4 dist/MacClair.app 2>&1 \
             | grep -E "Authority|TeamIdentifier|Timestamp|Runtime" || true
+          for bin in dist/MacClair.app/Contents/MacOS/MacClair dist/MacClair.app/Contents/MacOS/macclair-mcp; do
+            ARCHS="$(lipo -archs "$bin")"
+            echo "$bin : $ARCHS"
+            [[ "$ARCHS" == *arm64* && "$ARCHS" == *x86_64* ]] || {
+              echo "::error::$bin n'est pas universel ($ARCHS)"; exit 1;
+            }
+          done
 
       - name: Notariser et agrafer l'application
         run: |
@@ -147,7 +156,7 @@ jobs:
       - name: Empaqueter l'archive zip
         run: |
           set -euo pipefail
-          ZIP="MacClair-$VERSION-macOS-arm64.zip"
+          ZIP="MacClair-$VERSION-macOS-universal.zip"
           ditto -c -k --sequesterRsrc --keepParent dist/MacClair.app "dist/$ZIP"
           echo "ZIP=$ZIP" >> "$GITHUB_ENV"
           shasum -a 256 "dist/$ZIP"
@@ -160,7 +169,7 @@ jobs:
           mkdir -p "$STAGE"
           ditto dist/MacClair.app "$STAGE/MacClair.app"
           ln -s /Applications "$STAGE/Applications"
-          DMG="MacClair-$VERSION-macOS-arm64.dmg"
+          DMG="MacClair-$VERSION-macOS-universal.dmg"
           hdiutil create -volname "MacClair" -srcfolder "$STAGE" -ov -format UDZO "dist/$DMG"
           codesign --force --timestamp --sign "$IDENTITY" "dist/$DMG"
           codesign --verify --strict "dist/$DMG"
@@ -204,6 +213,8 @@ jobs:
             echo "Signed with a Developer ID certificate and **notarized by Apple**. No Gatekeeper workaround needed."
             echo ""
             echo "### Install"
+            echo ""
+            echo "Universal (Apple Silicon and Intel), macOS 14 or later."
             echo ""
             echo "- DMG: open \`$DMG\` and drag MacClair into Applications."
             echo "- Homebrew: \`brew install --cask n-khd/tap/macclair\`"
@@ -307,7 +318,7 @@ jobs:
             echo "  version \"$VERSION\""
             echo "  sha256 \"$SHA\""
             echo ""
-            echo '  url "https://github.com/n-khd/MacClair/releases/download/v#{version}/MacClair-#{version}-macOS-arm64.dmg"'
+            echo '  url "https://github.com/n-khd/MacClair/releases/download/v#{version}/MacClair-#{version}-macOS-universal.dmg"'
             echo '  name "MacClair"'
             echo '  desc "Open-source macOS utility to analyze disk usage and move personal files to the Trash"'
             echo '  homepage "https://github.com/n-khd/MacClair"'
@@ -319,7 +330,6 @@ jobs:
             echo "    strategy :github_latest"
             echo "  end"
             echo ""
-            echo "  depends_on arch: :arm64"
             echo '  depends_on macos: ">= :sonoma"'
             echo ""
             echo '  app "MacClair.app"'

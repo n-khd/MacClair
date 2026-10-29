@@ -3,11 +3,16 @@ set -euo pipefail
 cd "${0:A:h}"
 mkdir -p .build .cache/clang .cache/swift
 SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
-ARCH="$(uname -m)"
-if [[ "$ARCH" != arm64 && "$ARCH" != x86_64 ]]; then
-    echo "Architecture macOS non prise en charge : $ARCH" >&2
-    exit 1
-fi
+# Architectures à produire : par défaut celle du Mac. Pour un binaire universel (Intel + Apple
+# Silicon) : MACCLAIR_ARCHS="arm64 x86_64".
+ARCHS=(${=MACCLAIR_ARCHS:-$(uname -m)})
+for ARCH in "${ARCHS[@]}"; do
+    if [[ "$ARCH" != arm64 && "$ARCH" != x86_64 ]]; then
+        echo "Architecture macOS non prise en charge : $ARCH" >&2
+        exit 1
+    fi
+done
+echo "Architectures : ${ARCHS[*]}"
 
 # Sparkle : activé seulement si le framework est disponible. Sans lui, l'application compile et
 # fonctionne normalement, mais sans recherche de mises à jour (voir Sources/MacClair/Updater.swift).
@@ -24,20 +29,31 @@ else
     echo "Sparkle absent : compilation sans mise à jour automatique."
 fi
 
-SDKROOT="$SDKROOT" \
-CLANG_MODULE_CACHE_PATH="$PWD/.cache/clang" \
-xcrun swiftc -sdk "$SDKROOT" \
-    -target "${ARCH}-apple-macosx14.0" -parse-as-library -O \
-    -swift-version 5 \
-    "${SWIFT_SPARKLE[@]}" \
-    -module-cache-path .cache/swift \
-    -o .build/MacClair Sources/MacClair/*.swift
-# The helper is a separate stdio process; it shares the app's scanner implementation.
-SDKROOT="$SDKROOT" CLANG_MODULE_CACHE_PATH="$PWD/.cache/clang" \
-xcrun swiftc -sdk "$SDKROOT" -target "${ARCH}-apple-macosx14.0" -O -swift-version 5 \
-    -module-cache-path .cache/swift -o .build/macclair-mcp \
-    Sources/MacClairMCP/main.swift Sources/MacClair/Scanner.swift \
-    Sources/MacClair/Insights.swift Sources/MacClair/SafeTrash.swift
+APP_SLICES=()
+MCP_SLICES=()
+for ARCH in "${ARCHS[@]}"; do
+    SDKROOT="$SDKROOT" \
+    CLANG_MODULE_CACHE_PATH="$PWD/.cache/clang" \
+    xcrun swiftc -sdk "$SDKROOT" \
+        -target "${ARCH}-apple-macosx14.0" -parse-as-library -O \
+        -swift-version 5 \
+        "${SWIFT_SPARKLE[@]}" \
+        -module-cache-path .cache/swift \
+        -o ".build/MacClair-$ARCH" Sources/MacClair/*.swift
+    # The helper is a separate stdio process; it shares the app's scanner implementation.
+    SDKROOT="$SDKROOT" CLANG_MODULE_CACHE_PATH="$PWD/.cache/clang" \
+    xcrun swiftc -sdk "$SDKROOT" -target "${ARCH}-apple-macosx14.0" -O -swift-version 5 \
+        -module-cache-path .cache/swift -o ".build/macclair-mcp-$ARCH" \
+        Sources/MacClairMCP/main.swift Sources/MacClair/Scanner.swift \
+        Sources/MacClair/Insights.swift Sources/MacClair/SafeTrash.swift
+    APP_SLICES+=(".build/MacClair-$ARCH")
+    MCP_SLICES+=(".build/macclair-mcp-$ARCH")
+done
+# lipo fusionne les tranches en un seul exécutable (universel si deux architectures).
+lipo -create "${APP_SLICES[@]}" -output .build/MacClair
+lipo -create "${MCP_SLICES[@]}" -output .build/macclair-mcp
+rm -f "${APP_SLICES[@]}" "${MCP_SLICES[@]}"
+echo "Tranches : $(lipo -archs .build/MacClair) / $(lipo -archs .build/macclair-mcp)"
 APP="$PWD/dist/MacClair.app"
 mkdir -p "$APP/Contents/MacOS"
 mkdir -p "$APP/Contents/Resources"
