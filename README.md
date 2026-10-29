@@ -10,7 +10,7 @@ Everything is local and explicit: every file that leaves its place goes to the T
 
 <img src="Assets/MacClair-icon.png" width="128" alt="MacClair icon">
 
-**Website:** [macclair.vercel.app](https://macclair.waaplink.com) · and `brew install --cask n-khd/tap/macclair`
+**Website:** [macclair.waaplink.com](https://macclair.waaplink.com) · and `brew install --cask n-khd/tap/macclair`
 
 ![MacClair overview screen](docs/screenshots/overview-en.png)
 
@@ -117,4 +117,19 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 
-Issues and proposals are welcome in GitHub issues. For contributions see [CONTRIBUTING.md](CONTRIBUTING.md); to report a vulnerability see [SECURITY.md](SECURITY.md). Code and assets are released under the [MIT license](LICENSE). MacClair is an independent project and is not affiliated with MacPaw.
+MacClair is small on purpose — about 4,400 lines of Swift, no dependencies, one build script — so
+your first pull request can land in an hour. Everything is welcome: a translation, a reproducible
+bug, a test on a Mac the maintainer does not own, or code.
+
+- **[Good first issues](https://github.com/n-khd/MacClair/labels/good%20first%20issue)** — scoped
+  tasks, with the file to touch and the expected result.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — build and test, code map, the safety rules that cannot be
+  broken, review process. En français : [CONTRIBUTING.fr.md](CONTRIBUTING.fr.md).
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how the scanner, the Trash gate and the MCP
+  server fit together.
+- **[docs/TRANSLATING.md](docs/TRANSLATING.md)** — add a language with one file, no Swift needed.
+- **[Discussions](https://github.com/n-khd/MacClair/discussions)** — questions and half-formed ideas.
+
+For a vulnerability, follow [SECURITY.md](SECURITY.md) — never a public issue. By taking part you
+agree to the [code of conduct](.github/CODE_OF_CONDUCT.md). Code and assets are under the
+[MIT license](LICENSE). MacClair is an independent project and is not affiliated with MacPaw.

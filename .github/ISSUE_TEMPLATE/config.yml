@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Poser une question / Ask a question
+    url: https://github.com/n-khd/MacClair/discussions
+    about: Usage, idées floues, « est-ce que MacClair peut… ? » — Discussions plutôt qu'une issue.
+  - name: Signaler une vulnérabilité / Report a vulnerability
+    url: https://github.com/n-khd/MacClair/security/advisories/new
+    about: Ne jamais décrire une faille dans une issue publique. Voir SECURITY.md.
+  - name: Contribuer / Contributing guide
+    url: https://github.com/n-khd/MacClair/blob/main/CONTRIBUTING.md
+    about: Compiler, tester, première pull request, architecture du code.

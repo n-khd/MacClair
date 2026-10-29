@@ -10,7 +10,7 @@ MacClair privilégie les analyses locales et les opérations explicites : tout f
 
 <img src="Assets/MacClair-icon.png" width="128" alt="Icône MacClair">
 
-**Site web :** [macclair.vercel.app/fr](https://macclair.waaplink.com/fr) · et `brew install --cask n-khd/tap/macclair`
+**Site web :** [macclair.waaplink.com/fr](https://macclair.waaplink.com/fr) · et `brew install --cask n-khd/tap/macclair`
 
 ![Écran principal de MacClair](docs/screenshots/overview-fr.png)
 
@@ -123,4 +123,19 @@ Voir [CHANGELOG.md](CHANGELOG.md).
 
 ## Participer
 
-Les problèmes et propositions peuvent être ouverts dans les issues GitHub. Pour contribuer, consultez [CONTRIBUTING.md](CONTRIBUTING.md) ; pour signaler une vulnérabilité, consultez [SECURITY.md](SECURITY.md). Le code et les ressources de ce dépôt sont distribués sous [licence MIT](LICENSE). MacClair est un projet indépendant et n’est pas affilié à MacPaw.
+MacClair est petit exprès — environ 4 400 lignes de Swift, aucune dépendance, un script de
+compilation — donc une première pull request peut aboutir dans l'heure. Tout est utile : une
+traduction, un bug reproductible, un test sur un Mac que le mainteneur n'a pas, ou du code.
+
+- **[Premières issues](https://github.com/n-khd/MacClair/labels/good%20first%20issue)** — des tâches
+  cadrées, avec le fichier à toucher et le résultat attendu.
+- **[CONTRIBUTING.fr.md](CONTRIBUTING.fr.md)** — compiler et tester, carte du code, règles de sécurité
+  à ne pas casser, déroulé de la revue. In English: [CONTRIBUTING.md](CONTRIBUTING.md).
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — comment le scanner, la porte de sécurité de la
+  Corbeille et le serveur MCP s'articulent.
+- **[docs/TRANSLATING.md](docs/TRANSLATING.md)** — ajouter une langue avec un seul fichier, sans Swift.
+- **[Discussions](https://github.com/n-khd/MacClair/discussions)** — questions et idées en vrac.
+
+Pour une vulnérabilité, suivez [SECURITY.md](SECURITY.md) — jamais une issue publique. En
+participant, vous acceptez le [code de conduite](.github/CODE_OF_CONDUCT.md). Le code et les
+ressources sont sous [licence MIT](LICENSE). MacClair est un projet indépendant, non affilié à MacPaw.
