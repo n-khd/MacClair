@@ -91,7 +91,7 @@ L’interface est disponible en **français** et en **anglais**. Par défaut, Ma
 
 L’analyse générale est ciblée : elle examine les fichiers de Téléchargements (ou d’un sous-dossier choisi), inventorie les caches et journaux du compte et les installateurs de plus de 30 jours, puis relève les applications et l’état de certaines protections macOS. Elle ne recherche pas les malwares et ne parcourt pas l’ensemble du disque. La recherche de doublons exclut les dossiers cachés, paquets et certains dossiers de projets ; comparer le contenu complet de très gros fichiers peut prendre du temps. Elle est limitée à 10 000 fichiers et 80 000 entrées ; l’inventaire des fichiers anciens est limité à 20 000 résultats par catégorie. Les limites et les erreurs d’accès sont signalées dans l’interface et peuvent rendre les résultats incomplets. Une analyse rapide peut donc être normale et ne signifie pas que tout le Mac a été vérifié.
 
-L’interface ne présente que des fonctions réellement disponibles ; les fonctions non implémentées ne sont pas affichées. Voir [l’analyse des fonctions](REVERSE_ENGINEERING.md) et la [feuille de route](ROADMAP.md) pour le périmètre actuel et les écarts.
+L’interface ne présente que des fonctions réellement disponibles ; les fonctions non implémentées ne sont pas affichées. Voir la [feuille de route](ROADMAP.md) pour le périmètre actuel et les écarts.
 
 ## Utiliser les doublons
 

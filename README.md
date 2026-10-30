@@ -85,7 +85,7 @@ The server exposes two read-only scans (`scan_downloads`, `scan_cleanup`) plus `
 
 The general scan is focused: it looks at Downloads (or a chosen subfolder), inventories your account’s caches and logs and installers older than 30 days, then reports applications and the state of some macOS protections. It does not hunt malware and does not walk the whole disk. Duplicate search skips hidden folders, packages and some project folders; comparing very large files in full can take a while. It is capped at 10,000 files and 80,000 entries, and the old-files inventory at 20,000 results per category. Limits and access errors are reported in the interface and can make results incomplete.
 
-See [REVERSE_ENGINEERING.md](REVERSE_ENGINEERING.md) and [ROADMAP.md](ROADMAP.md) for what is implemented today and what is not.
+See [ROADMAP.md](ROADMAP.md) for what is implemented today and what is not.
 
 ## Duplicates
 
