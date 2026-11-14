@@ -23,11 +23,21 @@ jobs:
           sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
           gitleaks version
 
-      - name: Scanner l'historique
+      # On ne scanne que ce qui vient d'être poussé (l'historique ancien
+      # contient des .env déjà supprimés du repo le 13/11/2026).
+      - name: Scanner les commits poussés
         run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            RANGE="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+          elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            RANGE="${{ github.event.before }}..${{ github.event.after }}"
+          else
+            RANGE="HEAD~1..HEAD"
+          fi
+          echo "Plage scannée : $RANGE"
           gitleaks git --redact --no-banner --exit-code 1 \
-            --baseline-path .gitleaks-baseline.json \
-            --report-format sarif --report-path gitleaks.sarif .
+            --report-format sarif --report-path gitleaks.sarif \
+            --log-opts="$RANGE" .
 
       - name: Publier le rapport
         if: always()
